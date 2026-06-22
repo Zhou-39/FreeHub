@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FreeHub IDE - 云端专业开发环境</title>
+    <link href="https://fonts.loli.net/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-base: #0a0c10;
+            --bg-surface: #111318;
+            --bg-elevated: #1a1d24;
+            --bg-hover: #22262e;
+            --border-light: #2a2f38;
+            --text-primary: #eef2ff;
+            --text-secondary: #9ca3af;
+            --accent-main: #3b82f6;
+            --accent-deep: #2563eb;
+            --success-bright: #10b981;
+            --danger-fire: #ef4444;
+            --terminal-bg: #050608;
+            --scrollbar-thumb: #2d313a;
+            --shadow-md: 0 8px 20px rgba(0,0,0,0.4);
+        }
+        
+        body.light-theme {
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-elevated: #f1f5f9;
+            --bg-hover: #e2e8f0;
+            --border-light: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent-main: #2563eb;
+            --terminal-bg: #fefce8;
+            --scrollbar-thumb: #94a3b8;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 12px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-main); }
+        
+        .app-shell {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .top-nav {
+            height: 50px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+        }
+        
+        .logo-cluster {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo-text {
+            font-weight: 800;
+            font-size: 1.3rem;
+            background: linear-gradient(130deg, #3b82f6, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .project-chip {
+            background: var(--bg-elevated);
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: var(--bg-elevated);
+            border: none;
+            padding: 6px 14px;
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn:hover { background: var(--bg-hover); transform: translateY(-1px); }
+        .btn-primary { background: var(--accent-main); color: white; }
+        .btn-primary:hover { background: var(--accent-deep); }
+        .btn-danger { background: var(--danger-fire); color: white; }
+        .btn-success { background: var(--success-bright); color: white; }
+        .btn-sm { padding: 2px 8px; font-size: 11px; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .main-workspace {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .explorer {
+            width: 260px;
+            min-width: 180px;
+            max-width: 500px;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            resize: horizontal;
+        }
+        
+        .explorer-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+        
+        .explorer-tools {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+        
+        .icon-btn:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+        
+        .file-search-area {
+            padding: 8px 12px;
+        }
+        
+        .file-search-input {
+            width: 100%;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 12px;
+            outline: none;
+        }
+        
+        .file-search-input:focus { border-color: var(--accent-main); }
+        
+        .file-tree-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        
+        .file-node {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            user-select: none;
+        }
+        
+        .file-node:hover { background: var(--bg-hover); }
+        .file-node.active { background: rgba(59,130,246,0.2); }
+        .indent-spacer { margin-left: 20px; }
+        
+        .editor-core {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 320px;
+            background: var(--bg-base);
+        }
+        
+        .tabs-row {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-light);
+            height: 40px;
+            display: flex;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        
+        .tabs-row::-webkit-scrollbar { height: 3px; }
+        
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 16px;
+            border-right: 1px solid var(--border-light);
+            background: var(--bg-surface);
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.1s;
+        }
+        
+        .tab:hover { background: var(--bg-hover); }
+        .tab.active {
+            background: var(--bg-base);
+            border-top: 2px solid var(--accent-main);
+        }
+        
+        .tab-close-btn {
+            margin-left: 6px;
+            opacity: 0.6;
+            width: 18px;
+            text-align: center;
+            border-radius: 4px;
+        }
+        
+        .tab-close-btn:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .tab.dragging { opacity: 0.5; cursor: grabbing; }
+        .tab.drag-over { border-left: 2px solid var(--accent-main); }
+        
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .monaco-wrapper { flex: 1; }
+        
+        .info-sidebar {
+            width: 260px;
+            min-width: 180px;
+            max-width: 450px;
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-shrink: 0;
+            resize: horizontal;
+        }
+        
+        .info-card {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .card-header {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        
+        .outline-item {
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: monospace;
+            cursor: pointer;
+            border-radius: 6px;
+            margin: 2px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .outline-item:hover { background: var(--bg-hover); }
+        
+        .terminal-zone {
+            background: var(--terminal-bg);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        
+        .term-resize-handle {
+            height: 5px;
+            background: var(--border-light);
+            cursor: ns-resize;
+        }
+        
+        .term-resize-handle:hover { background: var(--accent-main); }
+        
+        .term-toolbar {
+            height: 38px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+        
+        .term-tabs {
+            display: flex;
+            gap: 2px;
+            background: var(--bg-elevated);
+            padding: 3px 6px;
+            border-radius: 8px;
+        }
+        
+        .term-tab {
+            padding: 2px 12px;
+            font-size: 11px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            transition: all 0.1s;
+        }
+        
+        .term-tab:hover { background: var(--bg-hover); }
+        .term-tab.active {
+            background: var(--accent-main);
+            color: white;
+        }
+        
+        #xtermHost {
+            padding: 6px;
+            height: calc(100% - 38px);
+            overflow-y: auto;
+        }
+        
+        .xterm { font-family: 'JetBrains Mono', monospace; letter-spacing: normal; }
+        .xterm .xterm-screen { letter-spacing: normal; }
+        
+        .status-footer {
+            height: 26px;
+            background: var(--bg-elevated);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 11px;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(3px);
+        }
+        
+        .modal-card {
+            background: var(--bg-surface);
+            border-radius: 20px;
+            width: 460px;
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+        }
+        
+        .toast-stack {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 10001;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast-message {
+            background: var(--bg-elevated);
+            border-left: 4px solid var(--accent-main);
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 13px;
+            box-shadow: var(--shadow-md);
+            animation: slideIn 0.2s ease;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10002;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(59,130,246,0.3);
+            border-top-color: var(--accent-main);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        
+        .context-menu {
+            position: fixed;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: 14px;
+            box-shadow: var(--shadow-md);
+            z-index: 10003;
+            min-width: 190px;
+            overflow: hidden;
+        }
+        
+        .context-item {
+            padding: 8px 14px;
+            display: flex;
+            gap: 12px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .context-item:hover { background: var(--bg-hover); }
+        .context-item-danger { color: var(--danger-fire); }
+        
+        .shortcuts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .shortcut-key {
+            background: var(--bg-elevated);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--accent-main);
+        }
+        
+        .shortcut-desc {
+            color: var(--text-secondary);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(40px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <input type="hidden" id="currentProject" value="{{ project }}">
+    <input type="hidden" id="currentUsername" value="{{ username }}">
+
+<div class="app-shell">
+    <div class="top-nav">
+        <div class="logo-cluster">
+            <div class="logo-text">✦ FreeHub IDE</div>
+            <div class="project-chip" id="projectLabel">加载中...</div>
+        </div>
+        <div class="action-bar">
+            <button class="btn" id="themeSwitcher">🌓 主题</button>
+            <button class="btn" onclick="ideQuickOpen()">🔍 快速打开 (Ctrl+P)</button>
+            <button class="btn" onclick="ideGlobalSearch()">🔎 全局搜索</button>
+            <button class="btn" onclick="toggleTerminalVisibility()">💻 终端</button>
+            <button class="btn btn-primary" onclick="saveCurrentFile()">💾 保存</button>
+            <button class="btn btn-primary" onclick="runCurrentFile()">▶ 运行</button>
+            <button class="btn btn-danger" onclick="logout()">🚪 退出</button>
+        </div>
+    </div>
+    
+    <div class="main-workspace">
+        <div class="explorer" id="explorerPanel">
+            <div class="explorer-header">
+                <span class="section-label">📁 资源管理器</span>
+                <div class="explorer-tools">
+                    <button class="icon-btn" onclick="refreshFileTree()">↻</button>
+                    <button class="icon-btn" onclick="uploadFileDialog()">⬆️</button>
+                    <button class="icon-btn" onclick="createNewFile()">📄+</button>
+                    <button class="icon-btn" onclick="createNewFolder()">📁+</button>
+                </div>
+            </div>
+            <div class="file-search-area">
+                <input type="text" class="file-search-input" id="fileFilter" placeholder="筛选文件..." oninput="filterFileTree()">
+            </div>
+            <div class="file-tree-container" id="fileTreeRoot"><div style="padding:20px;text-align:center;">加载中...</div></div>
+        </div>
+        
+        <div class="editor-core">
+            <div class="tabs-row" id="tabsContainer"></div>
+            <div class="editor-container">
+                <div class="monaco-wrapper" id="monacoEditor"></div>
+            </div>
+        </div>
+        
+        <div class="info-sidebar" id="infoSidebar">
+            <div class="info-card">
+                <div class="card-header">👤 账号</div>
+                <div id="userInfoArea">加载中...</div>
+            </div>
+            <div class="info-card">
+                <div class="card-header">🐳 容器状态</div>
+                <div id="containerStatusBadge">检测中...</div>
+            </div>
+            <div class="info-card">
+                <div class="card-header" onclick="refreshOutline()">📑 大纲 ▼</div>
+                <div id="outlineContainer">点击文件查看结构</div>
+            </div>
+            <div class="info-card">
+                <div class="card-header">⌨️ 快捷键</div>
+                <div class="shortcuts-list">
+                    <div class="shortcut-item"><span class="shortcut-desc">保存文件</span><span class="shortcut-key">Ctrl+S</span></div>
+                    <div class="shortcut-item"><span class="shortcut-desc">运行代码</span><span class="shortcut-key">Ctrl+R</span></div>
+                    <div class="shortcut-item"><span class="shortcut-desc">快速打开</span><span class="shortcut-key">Ctrl+P</span></div>
+                    <div class="shortcut-item"><span class="shortcut-desc">全局搜索</span><span class="shortcut-key">Ctrl+Shift+F</span></div>
+                    <div class="shortcut-item"><span class="shortcut-desc">显示/隐藏终端</span><span class="shortcut-key">Ctrl+`</span></div>
+                    <div class="shortcut-item"><span class="shortcut-desc">关闭弹窗</span><span class="shortcut-key">Esc</span></div>
+                    <div class="shortcut-item"><span class="shortcut-desc">右键文件操作</span><span class="shortcut-key">右键菜单</span></div>
+                    <div class="shortcut-item"><span class="shortcut-desc">标签页拖拽排序</span><span class="shortcut-key">拖拽</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="terminal-zone" id="terminalZone" style="height: 220px;">
+        <div class="term-resize-handle" id="termResizeHandle"></div>
+        <div class="term-toolbar">
+            <span>⚡ 终端 (Ctrl+C 复制 | Ctrl+V 粘贴)</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <div class="term-tabs" id="termTabs"></div>
+                <button class="btn btn-sm" onclick="addNewTerminal()">+ 新建</button>
+            </div>
+        </div>
+        <div id="xtermHost"></div>
+    </div>
+    
+    <div class="status-footer">
+        <div id="activeFileStatus">📄 未打开文件</div>
+        <div id="cursorStatus">Ln 1, Col 1</div>
+    </div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-card">
+        <div class="info-card" style="border:none;">
+            <div class="card-header" id="modalTitle">新建</div>
+            <input id="modalInput" class="file-search-input" style="margin:12px 0;" placeholder="输入名称">
+            <div style="display:flex;gap:12px;justify-content:flex-end;">
+                <button class="btn" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" id="modalConfirmBtn">确认</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="searchModal" class="modal-overlay">
+    <div class="modal-card" style="width:620px;">
+        <div class="info-card">
+            <div class="card-header">🔎 全局搜索</div>
+            <div class="file-search-area" style="padding:0 0 12px 0;">
+                <input type="text" id="globalSearchInput" class="file-search-input" placeholder="输入关键词...">
+            </div>
+            <div id="globalSearchResults" style="max-height:380px;overflow:auto;"></div>
+            <div style="margin-top:12px;text-align:center;">
+                <button class="btn" onclick="performGlobalSearch()">搜索</button>
+                <button class="btn" onclick="closeSearchModal()">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-stack" id="toastRoot"></div>
+<div class="loading-overlay" id="loadingLayer">
+    <div class="spinner"></div>
+    <div id="loadingMsg">处理中...</div>
+</div>
+
+<input type="file" id="hiddenUploader" style="display:none">
+
+<script src="https://cdn.jsdelivr.net/npm/socket.io/client-dist/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+
+<script>
+    // ======================== 全局状态 ========================
+    let editor = null;
+    let openedTabs = [];
+    let fileModelCache = new Map();
+    let allFilesList = [];
+    let quickOpenIndex = [];
+    let expandedFolders = new Set();
+    let currentFile = null;
+    
+    // 终端相关
+    let terminals = [];
+    let activeTerminalId = null;
+    let nextTerminalId = 1;
+    
+    let isLight = false;
+    let currentProject = "";
+    
+    let explorerWidth = localStorage.getItem("ide_explorer_width") || 260;
+    let sidebarWidth = localStorage.getItem("ide_sidebar_width") || 260;
+    
+    // ======================== 辅助函数 ========================
+    function showToast(msg, type = "info") {
+        const container = document.getElementById("toastRoot");
+        const toast = document.createElement("div");
+        toast.className = "toast-message";
+        toast.style.borderLeftColor = type === "error" ? "var(--danger-fire)" : "var(--success-bright)";
+        toast.innerText = msg;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 2800);
+    }
+    
+    function showLoading(msg) {
+        document.getElementById("loadingMsg").innerText = msg;
+        document.getElementById("loadingLayer").style.display = "flex";
+    }
+    
+    function hideLoading() {
+        document.getElementById("loadingLayer").style.display = "none";
+    }
+    
+    async function apiCall(url, method = "POST", body = null) {
+        const opts = { method, headers: { "Content-Type": "application/json" } };
+        if (body) opts.body = JSON.stringify(body);
+        const resp = await fetch(url, opts);
+        return resp.json();
+    }
+    
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function initResizable() {
+        const explorer = document.getElementById("explorerPanel");
+        const sidebar = document.getElementById("infoSidebar");
+        if (explorer) {
+            explorer.style.width = explorerWidth + "px";
+            new ResizeObserver(() => localStorage.setItem("ide_explorer_width", explorer.offsetWidth)).observe(explorer);
+        }
+        if (sidebar) {
+            sidebar.style.width = sidebarWidth + "px";
+            new ResizeObserver(() => localStorage.setItem("ide_sidebar_width", sidebar.offsetWidth)).observe(sidebar);
+        }
+    }
+    
+    // ======================== 文件树 ========================
+    async function collectAllFiles(dir = "") {
+        const data = await apiCall("/api/fs/list", "POST", { path: dir });
+        if (data.files) {
+            for (const f of data.files) {
+                const full = dir ? `${dir}/${f.name}` : f.name;
+                if (f.is_dir) await collectAllFiles(full);
+                else {
+                    allFilesList.push(full);
+                    quickOpenIndex.push({ path: full, name: f.name });
+                }
+            }
+        }
+    }
+    
+    async function renderTree(parentEl, dirPath = "", filter = "") {
+        const data = await apiCall("/api/fs/list", "POST", { path: dirPath });
+        if (!data.files) return;
+        
+        let items = data.files;
+        if (filter) items = items.filter(f => f.name.toLowerCase().includes(filter.toLowerCase()));
+        items.sort((a, b) => {
+            if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
+            return a.is_dir ? -1 : 1;
+        });
+        
+        for (const item of items) {
+            const fullPath = dirPath ? `${dirPath}/${item.name}` : item.name;
+            const node = document.createElement("div");
+            node.className = "file-node";
+            node.dataset.path = fullPath;
+            
+            if (item.is_dir) {
+                const isExp = expandedFolders.has(fullPath);
+                node.innerHTML = `<span style="width:18px;font-size:10px;">${isExp ? "▼" : "▶"}</span><span>${isExp ? "📂" : "📁"}</span><span style="flex:1;">${escapeHtml(item.name)}</span>`;
+                const toggle = node.children[0];
+                const handler = async (e) => {
+                    e.stopPropagation();
+                    if (expandedFolders.has(fullPath)) {
+                        expandedFolders.delete(fullPath);
+                        let nxt = node.nextSibling;
+                        while (nxt && nxt.classList?.contains("indent-spacer")) {
+                            const rm = nxt;
+                            nxt = nxt.nextSibling;
+                            rm.remove();
+                        }
+                        node.children[1].innerHTML = "📁";
+                        toggle.innerHTML = "▶";
+                    } else {
+                        expandedFolders.add(fullPath);
+                        node.children[1].innerHTML = "📂";
+                        toggle.innerHTML = "▼";
+                        const childDiv = document.createElement("div");
+                        childDiv.className = "indent-spacer";
+                        await renderTree(childDiv, fullPath, filter);
+                        if (node.nextSibling) parentEl.insertBefore(childDiv, node.nextSibling);
+                        else parentEl.appendChild(childDiv);
+                    }
+                    localStorage.setItem("ide_expanded", JSON.stringify(Array.from(expandedFolders)));
+                };
+                node.onclick = handler;
+                toggle.onclick = handler;
+                if (isExp && !filter) {
+                    const subDiv = document.createElement("div");
+                    subDiv.className = "indent-spacer";
+                    await renderTree(subDiv, fullPath, filter);
+                    parentEl.appendChild(subDiv);
+                }
+            } else {
+                node.innerHTML = `<span style="width:20px;"></span><span>📄</span><span>${escapeHtml(item.name)}</span>`;
+                node.onclick = () => openFileInEditor(fullPath);
+            }
+            node.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e.clientX, e.clientY, fullPath, item.is_dir); };
+            parentEl.appendChild(node);
+        }
+    }
+    
+    async function refreshFileTree() {
+        const root = document.getElementById("fileTreeRoot");
+        root.innerHTML = "";
+        await renderTree(root, "", document.getElementById("fileFilter")?.value || "");
+    }
+    
+    function filterFileTree() { refreshFileTree(); }
+    
+    // ======================== 右键菜单 ========================
+    function showContextMenu(x, y, path, isDir) {
+        const old = document.querySelector(".context-menu");
+        if (old) old.remove();
+        const menu = document.createElement("div");
+        menu.className = "context-menu";
+        menu.innerHTML = `
+            <div class="context-item" data-act="rename"><span>✏️</span><span>重命名</span></div>
+            <div class="context-item context-item-danger" data-act="delete"><span>🗑️</span><span>删除</span></div>
+            <div class="context-item" data-act="newfile"><span>📄</span><span>新建文件</span></div>
+            <div class="context-item" data-act="newfolder"><span>📁</span><span>新建文件夹</span></div>
+            <div class="context-item" data-act="download"><span>⬇️</span><span>下载</span></div>
+        `;
+        document.body.appendChild(menu);
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+        const handler = (e) => {
+            const act = e.target.closest(".context-item")?.dataset?.act;
+            if (act === "rename") renameItem(path, isDir);
+            if (act === "delete") deleteItem(path, isDir);
+            if (act === "newfile") createFileInDir(path, isDir);
+            if (act === "newfolder") createFolderInDir(path, isDir);
+            if (act === "download") downloadFile(path);
+            menu.remove();
+            document.removeEventListener("click", handler);
+        };
+        setTimeout(() => document.addEventListener("click", handler), 20);
+    }
+    
+    async function renameItem(path, isDir) {
+        const newName = prompt("新名称", path.split("/").pop());
+        if (!newName) return;
+        const parent = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "";
+        const newPath = parent ? `${parent}/${newName}` : newName;
+        await apiCall("/api/fs/rename", "POST", { old_path: path, new_path: newPath });
+        refreshFileTree();
+        for (let i = 0; i < openedTabs.length; i++) if (openedTabs[i] === path) openedTabs[i] = newPath;
+        if (fileModelCache.has(path)) {
+            const model = fileModelCache.get(path);
+            fileModelCache.delete(path);
+            fileModelCache.set(newPath, model);
+        }
+        if (currentFile === path) {
+            currentFile = newPath;
+            document.getElementById("activeFileStatus").innerHTML = `📄 ${newPath}`;
+        }
+        updateTabsUI();
+    }
+    
+    async function deleteItem(path, isDir) {
+        if (confirm(`删除 ${path}?`)) {
+            await apiCall("/api/fs/delete", "POST", { path });
+            refreshFileTree();
+            if (fileModelCache.has(path)) { fileModelCache.get(path).dispose(); fileModelCache.delete(path); }
+            const tabIndex = openedTabs.indexOf(path);
+            if (tabIndex !== -1) openedTabs.splice(tabIndex, 1);
+            if (currentFile === path) {
+                if (openedTabs.length > 0) openFileInEditor(openedTabs[0]);
+                else {
+                    currentFile = null;
+                    editor.setModel(monaco.editor.createModel("// 无打开文件\n// 从左侧打开文件", "plaintext"));
+                    updateStatusBar(null);
+                    generateOutline(null, null);
+                }
+            }
+            updateTabsUI();
+            showToast("删除成功", "success");
+        }
+    }
+    
+    async function downloadFile(path) {
+        const data = await apiCall("/api/fs/read", "POST", { path });
+        const blob = new Blob([data.content], { type: "text/plain" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = path.split("/").pop();
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast("下载成功", "success");
+    }
+    
+    async function createFileInDir(path, isDir) {
+        const parent = isDir ? path : (path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "");
+        const name = prompt("文件名:", "newfile.txt");
+        if (name) {
+            const full = parent ? `${parent}/${name}` : name;
+            await apiCall("/api/fs/write", "POST", { path: full, content: "" });
+            refreshFileTree();
+            openFileInEditor(full);
+        }
+    }
+    
+    async function createFolderInDir(path, isDir) {
+        const parent = isDir ? path : (path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "");
+        const name = prompt("文件夹名:", "newfolder");
+        if (name) {
+            const full = parent ? `${parent}/${name}` : name;
+            await apiCall("/api/fs/mkdir", "POST", { path: full });
+            refreshFileTree();
+        }
+    }
+    
+    async function createNewFile() {
+        const name = prompt("文件名:");
+        if (name) {
+            await apiCall("/api/fs/write", "POST", { path: name, content: "" });
+            refreshFileTree();
+            openFileInEditor(name);
+        }
+    }
+    
+    async function createNewFolder() {
+        const name = prompt("文件夹名:");
+        if (name) {
+            await apiCall("/api/fs/mkdir", "POST", { path: name });
+            refreshFileTree();
+        }
+    }
+    
+    function uploadFileDialog() { document.getElementById("hiddenUploader").click(); }
+    document.getElementById("hiddenUploader").onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append("file", file);
+        showLoading("上传中");
+        try {
+            const res = await fetch("/api/upload", { method: "POST", body: fd });
+            const data = await res.json();
+            if (data.success) { refreshFileTree(); showToast("上传成功", "success"); }
+        } catch (err) { showToast("上传失败", "error"); }
+        finally { hideLoading(); }
+    };
+    
+    // ======================== 编辑器 ========================
+    function detectLang(p) {
+        const e = p.split('.').pop();
+        const map = { py: "python", js: "javascript", ts: "typescript", html: "html", css: "css", cpp: "cpp", c: "c", java: "java", json: "json", go: "go", sh: "shell" };
+        return map[e] || "plaintext";
+    }
+    
+    async function openFileInEditor(path) {
+        if (currentFile === path) return;
+        if (!openedTabs.includes(path)) openedTabs.push(path);
+        if (fileModelCache.has(path)) {
+            editor.setModel(fileModelCache.get(path));
+        } else {
+            showLoading(`打开 ${path}`);
+            try {
+                const res = await apiCall("/api/fs/read", "POST", { path });
+                if (res.error) {
+                    showToast(res.error, "error");
+                    const idx = openedTabs.indexOf(path);
+                    if (idx !== -1) openedTabs.splice(idx, 1);
+                    hideLoading();
+                    return;
+                }
+                const model = monaco.editor.createModel(res.content || "", detectLang(path));
+                fileModelCache.set(path, model);
+                editor.setModel(model);
+            } catch (e) {
+                showToast("打开失败", "error");
+                const idx = openedTabs.indexOf(path);
+                if (idx !== -1) openedTabs.splice(idx, 1);
+                hideLoading();
+                return;
+            } finally {
+                hideLoading();
+            }
+        }
+        currentFile = path;
+        updateStatusBar(path);
+        generateOutline(path, fileModelCache.get(path));
+        updateTabsUI();
+    }
+    
+    function updateStatusBar(p) {
+        document.getElementById("activeFileStatus").innerHTML = p ? `📄 ${p}` : "📄 未打开文件";
+    }
+    
+    async function saveCurrentFile() {
+        if (!currentFile) { showToast("无打开文件", "error"); return; }
+        const content = editor.getValue();
+        showLoading("保存");
+        try {
+            await apiCall("/api/fs/write", "POST", { path: currentFile, content });
+            showToast("保存成功", "success");
+        } catch (e) { showToast("保存失败", "error"); }
+        finally { hideLoading(); }
+    }
+    
+    async function runCurrentFile() {
+        if (!currentFile) return;
+        await saveCurrentFile();
+        const term = terminals.find(t => t.id === activeTerminalId);
+        if (!term?.socket?.connected) { showToast("终端未连接", "error"); return; }
+        const ext = currentFile.split('.').pop();
+        let cmd = "";
+        if (ext === 'py') cmd = `python3 "${currentFile}"`;
+        else if (ext === 'js') cmd = `node "${currentFile}"`;
+        else if (ext === 'c') cmd = `gcc "${currentFile}" -o "${currentFile}.out" && ./"${currentFile}.out"`;
+        else if (ext === 'cpp') cmd = `g++ "${currentFile}" -o "${currentFile}.out" && ./"${currentFile}.out"`;
+        else if (ext === 'go') cmd = `go run "${currentFile}"`;
+        else { showToast("不支持运行", "error"); return; }
+        term.term.write(`\r\n\x1b[36m> ${cmd}\x1b[0m\r\n`);
+        term.socket.emit("terminal_input", { input: cmd + "\r" });
+    }
+    
+    // ======================== 标签页管理 ========================
+    function updateTabsUI() {
+        const container = document.getElementById("tabsContainer");
+        container.innerHTML = "";
+        openedTabs.forEach(path => {
+            const tabDiv = document.createElement("div");
+            tabDiv.className = `tab ${currentFile === path ? "active" : ""}`;
+            tabDiv.setAttribute("data-path", path);
+            tabDiv.innerHTML = `<span class="tab-title">${path.split('/').pop()}</span><span class="tab-close-btn">✕</span>`;
+            tabDiv.onclick = (e) => {
+                if (e.target.classList.contains("tab-close-btn")) { closeTab(path); e.stopPropagation(); }
+                else openFileInEditor(path);
+            };
+            tabDiv.draggable = true;
+            tabDiv.ondragstart = (e) => { e.dataTransfer.setData("text/plain", path); tabDiv.classList.add("dragging"); };
+            tabDiv.ondragend = () => tabDiv.classList.remove("dragging");
+            tabDiv.ondragover = (e) => e.preventDefault();
+            tabDiv.ondrop = (e) => {
+                e.preventDefault();
+                const draggedPath = e.dataTransfer.getData("text/plain");
+                if (draggedPath && draggedPath !== path) moveTab(draggedPath, path);
+            };
+            container.appendChild(tabDiv);
+        });
+        if (openedTabs.length === 0) {
+            const emptyDiv = document.createElement("div");
+            emptyDiv.style.cssText = "padding:8px 16px;font-size:12px;color:var(--text-secondary);";
+            emptyDiv.innerText = "无打开的文件";
+            container.appendChild(emptyDiv);
+        }
+    }
+    
+    function moveTab(draggedPath, targetPath) {
+        const draggedIndex = openedTabs.indexOf(draggedPath);
+        const targetIndex = openedTabs.indexOf(targetPath);
+        if (draggedIndex !== -1 && targetIndex !== -1) {
+            openedTabs.splice(draggedIndex, 1);
+            openedTabs.splice(targetIndex, 0, draggedPath);
+            updateTabsUI();
+            showToast("标签已移动", "success");
+        }
+    }
+    
+    function closeTab(path) {
+        const idx = openedTabs.indexOf(path);
+        if (idx !== -1) openedTabs.splice(idx, 1);
+        if (currentFile === path) {
+            if (openedTabs.length > 0) openFileInEditor(openedTabs[0]);
+            else {
+                currentFile = null;
+                editor.setModel(monaco.editor.createModel("// 无打开文件\n// 从左侧打开文件", "plaintext"));
+                updateStatusBar(null);
+                generateOutline(null, null);
+            }
+        }
+        updateTabsUI();
+    }
+    
+    // ======================== 大纲视图 ========================
+    function generateOutline(path, model) {
+        const container = document.getElementById("outlineContainer");
+        if (!path || !model) { container.innerHTML = "点击文件查看结构"; return; }
+        const lines = model.getValue().split("\n");
+        const outline = [];
+        lines.forEach((l, i) => {
+            const trimmed = l.trim();
+            if (trimmed.startsWith("def ")) {
+                const match = trimmed.match(/def\s+(\w+)/);
+                if (match) outline.push({ name: match[1], line: i + 1, icon: "🔧" });
+            } else if (trimmed.startsWith("class ")) {
+                const match = trimmed.match(/class\s+(\w+)/);
+                if (match) outline.push({ name: match[1], line: i + 1, icon: "📦" });
+            }
+        });
+        if (outline.length === 0) { container.innerHTML = "无符号定义"; return; }
+        container.innerHTML = outline.map(o => `<div class="outline-item" onclick="jumpToLine(${o.line})">${o.icon} ${escapeHtml(o.name)}</div>`).join("");
+    }
+    
+    function refreshOutline() {
+        if (currentFile && fileModelCache.has(currentFile)) generateOutline(currentFile, fileModelCache.get(currentFile));
+    }
+    
+    function jumpToLine(line) {
+        if (editor) { editor.revealLineInCenter(line); editor.setPosition({ lineNumber: line, column: 1 }); editor.focus(); }
+    }
+    
+    // ======================== 编辑器初始化 ========================
+    function initEditor() {
+        const container = document.getElementById("monacoEditor");
+        container.style.width = "100%";
+        container.style.height = "100%";
+        
+        editor = monaco.editor.create(container, {
+            value: "// FreeHub IDE\n// 打开文件开始编码",
+            language: "plaintext",
+            theme: isLight ? "vs-light" : "vs-dark",
+            automaticLayout: true,
+            fontSize: 13,
+            // 使用最简单的等宽字体，避免连字问题
+            fontFamily: "Consolas, 'Courier New', monospace",
+            fontLigatures: false,  // 禁用连字
+            letterSpacing: 0,
+            lineHeight: 1.4,
+            minimap: { enabled: false },
+            lineNumbers: "on",
+            glyphMargin: false,
+            folding: true,
+            scrollBeyondLastLine: false,
+            renderWhitespace: "selection",
+            tabSize: 4,
+            wordWrap: "off",
+            // 关键：禁用快速渲染，使用精确测量
+            quickSuggestions: true,
+            // 强制使用 DOM 测量而非 Canvas
+            domReadOnly: false
+        });
+        
+        editor.onDidChangeCursorPosition((e) => {
+            document.getElementById("cursorStatus").innerText = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+        });
+        
+        // 强制重新测量
+        setTimeout(() => {
+            editor.updateOptions({ fontSize: 13 });
+            editor.layout();
+        }, 100);
+        
+        window.addEventListener('resize', () => setTimeout(() => editor.layout(), 50));
+    }
+    
+    // ======================== 终端管理（支持多终端切换） ========================
+    function getTerminalTheme() {
+        return isLight ? { background: "#fefce8", foreground: "#1a1a2e", cursor: "#2563eb", selection: "rgba(37,99,235,0.3)" }
+                       : { background: "#050608", foreground: "#eef2ff", cursor: "#3b82f6", selection: "rgba(59,130,246,0.3)" };
+    }
+    
+    function applyTerminalTheme() {
+        const theme = getTerminalTheme();
+        terminals.forEach(t => {
+            if (t.term) {
+                t.term.options.theme = theme;
+                t.term.refresh();
+            }
+        });
+    }
+    
+    function updateTerminalTabsUI() {
+        const container = document.getElementById("termTabs");
+        if (!container) return;
+        container.innerHTML = "";
+        terminals.forEach(t => {
+            const tab = document.createElement("div");
+            tab.className = `term-tab ${activeTerminalId === t.id ? "active" : ""}`;
+            tab.textContent = `终端 ${t.index}`;
+            tab.onclick = () => switchTerminal(t.id);
+            container.appendChild(tab);
+        });
+        if (terminals.length === 0) {
+            const emptySpan = document.createElement("span");
+            emptySpan.textContent = "无终端";
+            emptySpan.style.color = "var(--text-secondary)";
+            emptySpan.style.fontSize = "11px";
+            container.appendChild(emptySpan);
+        }
+    }
+    
+    function initTerminal() {
+        addNewTerminal();
+    }
+    
+    function addNewTerminal() {
+        const tid = Date.now() + Math.random();
+        const termIndex = nextTerminalId++;
+        
+        const term = new Terminal({
+            cursorBlink: true,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 13,
+            theme: getTerminalTheme(),
+            convertEol: true,
+            letterSpacing: 0,
+            lineHeight: 1.2,
+            rightClickSelectsWord: true,
+            scrollback: 10000
+        });
+        
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        
+        // 如果是第一个终端，直接打开；否则先隐藏
+        if (terminals.length === 0) {
+            term.open(document.getElementById("xtermHost"));
+            fitAddon.fit();
+        } else {
+            const tempDiv = document.createElement("div");
+            tempDiv.style.display = "none";
+            document.getElementById("xtermHost").appendChild(tempDiv);
+            term.open(tempDiv);
+        }
+        
+        term.write(`\x1b[33m→ 连接终端 ${termIndex}...\x1b[0m\r\n`);
+        
+        const socket = io({ transports: ["websocket"] });
+        socket.on("connect", () => {
+            term.write("\x1b[32m✓ 已连接\x1b[0m\r\n");
+            term.write("\x1b[36m提示: Ctrl+C 复制选中内容 | Ctrl+V 粘贴\x1b[0m\r\n");
+            socket.emit("terminal_resize", { cols: term.cols, rows: term.rows });
+            if (activeTerminalId === tid) {
+                fitAddon.fit();
+            }
+        });
+        socket.on("terminal_output", d => term.write(d));
+        
+        let lastPaste = 0;
+        term.attachCustomKeyEventHandler((e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                const selection = term.getSelection();
+                if (selection && selection.length > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(selection);
+                    return false;
+                }
+                return true;
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                const now = Date.now();
+                if (now - lastPaste < 200) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                lastPaste = now;
+                e.preventDefault();
+                e.stopPropagation();
+                navigator.clipboard.readText().then(text => {
+                    if (text && socket.connected) socket.emit("terminal_input", { input: text });
+                }).catch(() => {});
+                return false;
+            }
+            return true;
+        });
+        
+        term.onData(d => { if (socket.connected) socket.emit("terminal_input", { input: d }); });
+        term.onResize(s => socket.emit("terminal_resize", { cols: s.cols, rows: s.rows }));
+        
+        terminals.push({ id: tid, index: termIndex, term, socket, fitAddon });
+        activeTerminalId = tid;
+        updateTerminalTabsUI();
+        
+        // 重新布局所有终端（切换可见性）
+        switchTerminal(tid);
+        
+        // 监听窗口大小变化
+        if (terminals.length === 1) {
+            window.addEventListener('resize', () => {
+                const active = terminals.find(t => t.id === activeTerminalId);
+                if (active && active.fitAddon) active.fitAddon.fit();
+            });
+        }
+        
+        showToast(`终端 ${termIndex} 已创建`, "success");
+    }
+    
+    function switchTerminal(tid) {
+        const target = terminals.find(t => t.id === tid);
+        if (!target) return;
+        
+        activeTerminalId = tid;
+        
+        // 清空容器并重新挂载当前终端
+        const container = document.getElementById("xtermHost");
+        container.innerHTML = "";
+        target.term.open(container);
+        
+        // 重新绑定 fit 插件
+        if (target.fitAddon) {
+            target.fitAddon.fit();
+        }
+        
+        updateTerminalTabsUI();
+    }
+    
+    function toggleTerminalVisibility() {
+        const z = document.getElementById("terminalZone");
+        z.style.display = z.style.display === "none" ? "flex" : "none";
+        if (z.style.display === "flex") {
+            setTimeout(() => {
+                const active = terminals.find(t => t.id === activeTerminalId);
+                if (active && active.fitAddon) active.fitAddon.fit();
+            }, 100);
+        }
+    }
+    
+    // ======================== 快捷键 ========================
+    function registerGlobalShortcuts() {
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveCurrentFile(); }
+            else if ((e.ctrlKey || e.metaKey) && e.key === 'r') { e.preventDefault(); runCurrentFile(); }
+            else if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); ideQuickOpen(); }
+            else if ((e.ctrlKey || e.metaKey) && e.key === '`') { e.preventDefault(); toggleTerminalVisibility(); }
+            else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') { e.preventDefault(); ideGlobalSearch(); }
+            else if (e.key === 'Escape') { closeModal(); closeSearchModal(); }
+        });
+    }
+    
+    // ======================== 快速打开 & 全局搜索 ========================
+    function ideQuickOpen() {
+        openModalWithCallback("快速打开", "文件名...", async (val) => {
+            if (val) {
+                const match = quickOpenIndex.find(f => f.name.includes(val) || f.path.includes(val));
+                if (match) openFileInEditor(match.path);
+            }
+        });
+    }
+    
+    function closeSearchModal() {
+        document.getElementById("searchModal").style.display = "none";
+        document.getElementById("globalSearchInput").value = "";
+        document.getElementById("globalSearchResults").innerHTML = "";
+    }
+    
+    async function performGlobalSearch() {
+        const kw = document.getElementById("globalSearchInput").value.trim();
+        if (!kw) {
+            showToast("请输入搜索关键词", "error");
+            return;
+        }
+        
+        showLoading("搜索中...");
+        const results = [];
+        
+        await new Promise(resolve => setTimeout(resolve, 10));
+        
+        for (let i = 0; i < allFilesList.length && i < 50; i++) {
+            const file = allFilesList[i];
+            try {
+                const res = await apiCall("/api/fs/read", "POST", { path: file });
+                const lines = res.content.split("\n");
+                for (let j = 0; j < lines.length && j < 200; j++) {
+                    const line = lines[j];
+                    if (line.toLowerCase().includes(kw.toLowerCase())) {
+                        results.push({ path: file, line: j + 1, snippet: line.slice(0, 100) });
+                        if (results.length >= 50) break;
+                    }
+                }
+            } catch (e) {}
+            if (results.length >= 50) break;
+        }
+        
+        hideLoading();
+        const cont = document.getElementById("globalSearchResults");
+        if (results.length === 0) {
+            cont.innerHTML = "<div style='padding:20px;text-align:center;color:var(--text-secondary);'>未找到匹配内容</div>";
+        } else {
+            cont.innerHTML = results.map(r => `
+                <div class="file-node" style="flex-direction:column;align-items:start;margin-bottom:8px;" onclick="openFileInEditor('${r.path}');closeSearchModal();">
+                    <div style="font-weight:500;">📄 ${r.path}:${r.line}</div>
+                    <div style="font-size:11px;color:var(--text-secondary);">${escapeHtml(r.snippet)}</div>
+                </div>
+            `).join("");
+        }
+    }
+    
+    function ideGlobalSearch() {
+        document.getElementById("searchModal").style.display = "flex";
+        document.getElementById("globalSearchInput").focus();
+        document.getElementById("globalSearchResults").innerHTML = "";
+    }
+    
+    // ======================== 模态框 ========================
+    let modalCb = null;
+    function openModalWithCallback(title, placeholder, cb) {
+        modalCb = cb;
+        document.getElementById("modalTitle").innerText = title;
+        document.getElementById("modalInput").placeholder = placeholder;
+        document.getElementById("modalOverlay").style.display = "flex";
+        document.getElementById("modalInput").value = "";
+        document.getElementById("modalConfirmBtn").onclick = () => { if (modalCb) modalCb(document.getElementById("modalInput").value); closeModal(); };
+    }
+    
+    function closeModal() { document.getElementById("modalOverlay").style.display = "none"; modalCb = null; }
+    
+    // ======================== 用户/容器状态 ========================
+    function loadProjectName() {
+        const projectInput = document.getElementById("currentProject");
+        if (projectInput && projectInput.value && projectInput.value !== "None") {
+            currentProject = projectInput.value;
+            document.getElementById("projectLabel").innerHTML = currentProject;
+        } else document.getElementById("projectLabel").innerHTML = "workspace";
+    }
+    
+    function loadUserInfo() {
+        const usernameInput = document.getElementById("currentUsername");
+        if (usernameInput && usernameInput.value && usernameInput.value !== "None") {
+            document.getElementById("userInfoArea").innerHTML = usernameInput.value;
+        } else document.getElementById("userInfoArea").innerHTML = "用户";
+    }
+    
+    async function loadContainerStatus() {
+        try {
+            const res = await fetch("/api/container/status");
+            const data = await res.json();
+            document.getElementById("containerStatusBadge").innerHTML = data.running ? "✅ 运行中" : "❌ 已停止";
+        } catch (e) {}
+    }
+    
+    function logout() { window.location.href = "/logout"; }
+    
+    // ======================== 主题切换 ========================
+    function applyTheme() {
+        if (isLight) document.body.classList.add("light-theme");
+        else document.body.classList.remove("light-theme");
+        const th = isLight ? "vs-light" : "vs-dark";
+        if (editor) editor.updateOptions({ theme: th });
+        applyTerminalTheme();
+    }
+    
+    function toggleTheme() {
+        isLight = !isLight;
+        localStorage.setItem("ide_theme", isLight ? "light" : "dark");
+        applyTheme();
+    }
+    
+    // ======================== 初始化 ========================
+    async function init() {
+        const savedTheme = localStorage.getItem("ide_theme");
+        if (savedTheme === "light") isLight = true;
+        applyTheme();
+        initResizable();
+        const savedExp = localStorage.getItem("ide_expanded");
+        if (savedExp) expandedFolders = new Set(JSON.parse(savedExp));
+        loadProjectName();
+        await collectAllFiles("");
+        await refreshFileTree();
+        initEditor();
+        initTerminal();
+        registerGlobalShortcuts();
+        setInterval(() => { if (currentFile) saveCurrentFile(); }, 30000);
+        setInterval(loadContainerStatus, 15000);
+        loadUserInfo();
+        loadContainerStatus();
+        document.getElementById("themeSwitcher").onclick = toggleTheme;
+        document.getElementById("termResizeHandle").addEventListener("mousedown", (e) => {
+            const startY = e.clientY, startH = document.getElementById("terminalZone").offsetHeight;
+            const move = (me) => {
+                let nh = startH + (startY - me.clientY);
+                nh = Math.min(500, Math.max(120, nh));
+                document.getElementById("terminalZone").style.height = nh + "px";
+                const active = terminals.find(t => t.id === activeTerminalId);
+                if (active && active.fitAddon) {
+                    setTimeout(() => active.fitAddon.fit(), 50);
+                }
+            };
+            const up = () => { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up); };
+            document.addEventListener("mousemove", move);
+            document.addEventListener("mouseup", up);
+        });
+        showToast("FreeHub IDE 已就绪", "success");
+    }
+    
+    require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs" } });
+    require(["vs/editor/editor.main"], () => { init(); });
+    
+    window.openFileInEditor = openFileInEditor;
+    window.saveCurrentFile = saveCurrentFile;
+    window.runCurrentFile = runCurrentFile;
+    window.refreshFileTree = refreshFileTree;
+    window.ideQuickOpen = ideQuickOpen;
+    window.ideGlobalSearch = ideGlobalSearch;
+    window.toggleTerminalVisibility = toggleTerminalVisibility;
+    window.createNewFile = createNewFile;
+    window.createNewFolder = createNewFolder;
+    window.uploadFileDialog = uploadFileDialog;
+    window.filterFileTree = filterFileTree;
+    window.performGlobalSearch = performGlobalSearch;
+    window.closeModal = closeModal;
+    window.closeSearchModal = closeSearchModal;
+    window.logout = logout;
+    window.addNewTerminal = addNewTerminal;
+    window.refreshOutline = refreshOutline;
+    window.jumpToLine = jumpToLine;
+</script>
+</body>
+</html>

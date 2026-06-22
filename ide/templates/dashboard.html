@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDE - 项目管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        /* 顶部导航 */
+        .navbar {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #334155;
+            padding: 0 2rem;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-name {
+            color: #94a3b8;
+        }
+
+        .btn-logout {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: #dc2626;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #94a3b8;
+        }
+
+        /* 卡片 */
+        .card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #334155;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* 表单 */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #cbd5e1;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        .btn-outline:hover {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* 项目列表 */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .project-card {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+        }
+
+        .project-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .project-name {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        /* 消息提示 */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: #1e293b;
+            border-left: 4px solid #3b82f6;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast-success {
+            border-left-color: #22c55e;
+        }
+
+        .toast-error {
+            border-left-color: #ef4444;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #334155;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">⚡ FreeHub IDE</div>
+        <div class="user-info">
+            <span class="user-name">{{ username }}</span>
+            <button class="btn-logout" onclick="logout()">退出登录</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚀 项目管理</h1>
+            <p>创建或打开一个项目，开始编写代码</p>
+        </div>
+
+        <!-- 创建项目卡片 -->
+        <div class="card">
+            <div class="card-title">
+                <span>📁</span> 创建新项目
+            </div>
+            <div class="form-group">
+                <label>项目名称</label>
+                <input type="text" id="projectName" placeholder="例如: my-flask-app" autocomplete="off">
+                <small>只支持字母、数字、连字符和下划线</small>
+            </div>
+            <button class="btn btn-primary" onclick="createProject()">创建项目</button>
+        </div>
+
+        <!-- 项目列表卡片 -->
+        <div class="card">
+            <div class="card-title">
+                <span>📂</span> 我的项目
+            </div>
+            <div id="projectsList">
+                <div class="empty-state">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        // 显示提示消息
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // 显示加载状态
+        function setLoading(btn, loading) {
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> 处理中...';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = btn.dataset.originalText || btn.textContent;
+            }
+        }
+
+        // 加载项目列表
+        async function loadProjects() {
+            const container = document.getElementById('projectsList');
+            try {
+                const resp = await fetch('/api/user/projects');
+                const data = await resp.json();
+                
+                if (data.success && data.projects.length > 0) {
+                    container.innerHTML = `
+                        <div class="projects-grid">
+                            ${data.projects.map(project => `
+                                <div class="project-card">
+                                    <div class="project-name">📁 ${escapeHtml(project)}</div>
+                                    <div class="project-actions">
+                                        <button class="btn btn-success btn-sm" onclick="openProject('${escapeHtml(project)}')">打开项目</button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteProject('${escapeHtml(project)}')">删除</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<div class="empty-state">📭 暂无项目，点击上方按钮创建一个</div>';
+                }
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div class="empty-state">❌ 加载失败，请刷新重试</div>';
+            }
+        }
+
+        // 转义 HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 创建项目
+        async function createProject() {
+            const nameInput = document.getElementById('projectName');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                showToast('请输入项目名称', 'error');
+                return;
+            }
+            
+            // 验证项目名称格式
+            if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+                showToast('项目名称只能包含字母、数字、下划线和连字符', 'error');
+                return;
+            }
+            
+            const btn = event.target;
+            btn.dataset.originalText = btn.innerHTML;
+            setLoading(btn, true);
+            
+            try {
+                const resp = await fetch('/api/project/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showToast(`项目 "${name}" 创建成功`, 'success');
+                    nameInput.value = '';
+                    await loadProjects();
+                } else {
+                    showToast(data.error || '创建失败', 'error');
+                }
+            } catch (err) {
+                showToast('请求失败: ' + err.message, 'error');
+            } finally {
+                setLoading(btn, false);
+            }
+        }
+
+        // 打开项目
+        async function openProject(projectName) {
+            showToast(`正在打开项目 "${projectName}"...`, 'info');
+            
+            try {
+                const resp = await fetch('/api/project/open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project: projectName })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    // 跳转到 IDE 页面
+                    window.location.href = '/ide';
+                } else {
+                    showToast(data.error || '打开失败', 'error');
+                }
+            } catch (err) {
+                showToast('请求失败: ' + err.message, 'error');
+            }
+        }
+
+        // 删除项目
+        async function deleteProject(projectName) {
+            if (!confirm(`确定要删除项目 "${projectName}" 吗？\n\n⚠️ 此操作不可恢复，所有文件将被永久删除！`)) {
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/project/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project: projectName })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showToast(`项目 "${projectName}" 已删除`, 'success');
+                    await loadProjects();
+                } else {
+                    showToast(data.error || '删除失败', 'error');
+                }
+            } catch (err) {
+                showToast('请求失败: ' + err.message, 'error');
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                window.location.href = '/logout';
+            }
+        }
+
+        // 页面加载时获取项目列表
+        loadProjects();
+    </script>
+</body>
+</html>
