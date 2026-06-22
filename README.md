@@ -267,7 +267,7 @@ server {
 
 ## 📄 许可证
 
-本项目采用 **AGPL-3.0** 许可证。详见 [LICENSE](LICENSE) 文件。
+本项目采用 **BSD 3-Clause License**。详见 [LICENSE](LICENSE) 文件。
 
 > 本项目为个人学习与自用项目，部分功能可能不够完善，欢迎提出改进建议。
 ---
