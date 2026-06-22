@@ -1,0 +1,793 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}管理子账户{% endblock %}
+
+{% block content %}
+<div class="link-uid-container">
+    <div class="page-header">
+        <h1><i class="fas fa-user-secret"></i> 管理子账户</h1>
+        <p>创建和管理您的匿名子账户，保护您的真实身份</p>
+    </div>
+
+    <div class="link-uid-content">
+        <!-- 现有子账户列表 -->
+        {% if uids %}
+        <div class="existing-uids">
+            <h2>我的子账户</h2>
+            <div class="uids-grid">
+                {% for uid in uids %}
+                <div class="uid-card">
+                    <div class="uid-header">
+                        <i class="fas fa-user-circle"></i>
+                        <h3>{{ uid.nickname if uid.nickname else '匿名用户' }}</h3>
+                        <button class="btn-delete delete-uid-btn" data-uid="{{ uid.uid }}" title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="uid-details">
+                        <div class="uid-detail">
+                            <span class="label">UID:</span>
+                            <span class="value">{{ uid.uid }}</span>
+                        </div>
+                        <div class="uid-detail">
+                            <span class="label">等级:</span>
+                            <span class="value level-{{ uid.level }}">{{ uid.level }}</span>
+                        </div>
+                        <div class="uid-detail">
+                            <span class="label">积分:</span>
+                            <span class="value">{{ uid.points }}</span>
+                        </div>
+                        <div class="uid-detail">
+                            <span class="label">状态:</span>
+                            <span class="value status-{{ 'active' if uid.status else 'inactive' }}">
+                                {{ '活跃' if uid.status else '禁用' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="uid-actions">
+                        <button class="btn btn-outline switch-uid-btn" data-uid="{{ uid.uid }}">
+                            <i class="fas fa-sign-in-alt"></i> 切换到此账户
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 创建新子账户 -->
+        <div class="create-new-uid">
+            <h2>创建新的子账户</h2>
+            <div class="create-form-container">
+                <form id="createUIDForm" class="create-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="uidNickname">子账户昵称</label>
+                            <input type="text" id="uidNickname" name="nickname" class="input-field" 
+                                   placeholder="请输入子账户昵称" maxlength="15" required>
+                            <div class="form-hint">昵称将在社区中显示给其他用户</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="uidPassword">子账户密码</label>
+                            <input type="password" id="uidPassword" name="password" class="input-field" 
+                                   placeholder="设置子账户密码" required>
+                            <button type="button" class="password-toggle" id="toggleUidPassword">
+                                <i class="fas fa-eye-slash"></i>
+                            </button>
+                            <div class="error-message" id="password-error">
+                                密码必须包含大小写字母和数字，长度8-30个字符
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="confirmUidPassword">确认密码</label>
+                            <input type="password" id="confirmUidPassword" name="confirmPassword" 
+                                   class="input-field" placeholder="确认子账户密码" required>
+                            <button type="button" class="password-toggle" id="toggleConfirmUidPassword">
+                                <i class="fas fa-eye-slash"></i>
+                            </button>
+                            <div class="error-message" id="confirmPassword-error">
+                                两次输入的密码不一致
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="uidBio">个人简介 (可选)</label>
+                            <textarea id="uidBio" name="bio" class="input-field textarea-field" 
+                                      placeholder="为子账户设置个人简介..."></textarea>
+                            <div class="char-counter">
+                                <span id="bioCharCount">0</span>/500
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 安全参数（隐藏字段） -->
+                    <input type="hidden" id="salt" name="salt">
+                    <input type="hidden" id="iterations" name="iterations">
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fas fa-plus-circle"></i> 创建子账户
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 子账户使用说明 -->
+        <div class="usage-guide">
+            <h2>子账户使用说明</h2>
+            <div class="guide-content">
+                <div class="guide-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <h3>隐私保护</h3>
+                        <p>子账户与您的主账户关联，但对外显示的是子账户信息，有效保护您的真实身份</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <h3>多身份管理</h3>
+                        <p>您可以创建多个子账户，用于不同的社交场景或内容类型</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <i class="fas fa-sync-alt"></i>
+                    <div>
+                        <h3>自由切换</h3>
+                        <p>在主账户和子账户之间自由切换，方便管理不同身份的内容</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.link-uid-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.existing-uids {
+    margin-bottom: 40px;
+}
+
+.existing-uids h2 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+
+.uids-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.uid-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.uid-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px var(--shadow);
+}
+
+.uid-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.uid-header i {
+    font-size: 1.5rem;
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.uid-header h3 {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+}
+
+.btn-delete {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.btn-delete:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.uid-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.uid-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.uid-detail .label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.uid-detail .value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.level-60 { color: var(--success); }
+.level-50 { color: var(--primary); }
+.level-40 { color: var(--warning); }
+
+.status-active { color: var(--success); }
+.status-inactive { color: var(--text-secondary); }
+
+.uid-actions {
+    text-align: center;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9rem;
+}
+
+.btn-outline:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.create-new-uid {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 40px;
+    border: 1px solid var(--border-color);
+}
+
+.create-new-uid h2 {
+    color: var(--text-primary);
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+}
+
+.create-form-container {
+    max-width: 600px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.input-field {
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.textarea-field {
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+}
+
+.form-hint {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.char-counter {
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.error-message {
+    display: none;
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 38px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: var(--primary);
+}
+
+.form-actions {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.btn-primary {
+    padding: 12px 30px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.usage-guide {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+}
+
+.usage-guide h2 {
+    color: var(--text-primary);
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+    text-align: center;
+}
+
+.guide-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+}
+
+.guide-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.guide-item i {
+    font-size: 2rem;
+    color: var(--primary);
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.guide-item h3 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.guide-item p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .uids-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .guide-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .guide-item {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    // 安全参数
+    let currentSalt = '';
+    let currentIterations = 0;
+
+    // 获取PBKDF2参数
+    fetchPBKDF2Params();
+
+    // 密码可见性切换
+    const toggleUidPassword = document.getElementById('toggleUidPassword');
+    const toggleConfirmUidPassword = document.getElementById('toggleConfirmUidPassword');
+    const uidPassword = document.getElementById('uidPassword');
+    const confirmUidPassword = document.getElementById('confirmUidPassword');
+
+    if (toggleUidPassword && uidPassword) {
+        toggleUidPassword.addEventListener('click', function() {
+            const type = uidPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            uidPassword.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+        });
+    }
+
+    if (toggleConfirmUidPassword && confirmUidPassword) {
+        toggleConfirmUidPassword.addEventListener('click', function() {
+            const type = confirmUidPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            confirmUidPassword.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+        });
+    }
+
+    // 实时验证
+    if (uidPassword) {
+        uidPassword.addEventListener('input', function() {
+            validatePassword();
+            validatePasswordsMatch();
+        });
+    }
+
+    if (confirmUidPassword) {
+        confirmUidPassword.addEventListener('input', function() {
+            validatePasswordsMatch();
+        });
+    }
+
+    const uidBio = document.getElementById('uidBio');
+    const bioCharCount = document.getElementById('bioCharCount');
+    
+    if (uidBio && bioCharCount) {
+        uidBio.addEventListener('input', function() {
+            bioCharCount.textContent = this.value.length;
+        });
+    }
+
+    // 表单提交
+    const createUIDForm = document.getElementById('createUIDForm');
+    if (createUIDForm) {
+        createUIDForm.addEventListener('submit', handleCreateUID);
+    }
+
+    // 删除子账户按钮
+    document.querySelectorAll('.delete-uid-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            deleteUID(this.dataset.uid);
+        });
+    });
+
+    // 切换子账户按钮
+    document.querySelectorAll('.switch-uid-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            switchToUID(this.dataset.uid);
+        });
+    });
+
+    // 获取PBKDF2参数
+    async function fetchPBKDF2Params() {
+        try {
+            const response = await fetch('/{{ basic_url }}/api/pbkdf2-salt');
+            const data = await response.json();
+            
+            if (data.success) {
+                currentSalt = data.salt;
+                currentIterations = data.iterations;
+                
+                // 设置隐藏字段的值
+                const saltInput = document.getElementById('salt');
+                const iterationsInput = document.getElementById('iterations');
+                
+                if (saltInput) saltInput.value = currentSalt;
+                if (iterationsInput) iterationsInput.value = currentIterations;
+            } else {
+                console.error('获取安全参数失败:', data.error);
+                alert('安全初始化失败，请刷新页面重试');
+            }
+        } catch (error) {
+            console.error('获取安全参数异常:', error);
+            alert('网络错误，请检查连接后重试');
+        }
+    }
+
+    function validatePassword() {
+        const password = uidPassword.value;
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasLowerCase = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const isValid = password.length >= 8 && password.length <= 30 &&
+                      hasUpperCase && hasLowerCase && hasNumber;
+
+        const errorElement = document.getElementById('password-error');
+        if (password.length === 0) {
+            if (errorElement) errorElement.style.display = 'none';
+        } else if (!isValid) {
+            if (errorElement) errorElement.style.display = 'block';
+        } else {
+            if (errorElement) errorElement.style.display = 'none';
+        }
+    }
+
+    function validatePasswordsMatch() {
+        const password = uidPassword.value;
+        const confirmPassword = confirmUidPassword.value;
+        const errorElement = document.getElementById('confirmPassword-error');
+
+        if (confirmPassword.length === 0) {
+            if (errorElement) errorElement.style.display = 'none';
+        } else if (password !== confirmPassword) {
+            if (errorElement) errorElement.style.display = 'block';
+        } else {
+            if (errorElement) errorElement.style.display = 'none';
+        }
+    }
+
+    // PBKDF2哈希函数
+    async function pbkdf2Hash(password, salt, iterations) {
+        const encoder = new TextEncoder();
+        const passwordBuffer = encoder.encode(password);
+        const saltBuffer = encoder.encode(salt);
+        
+        const key = await crypto.subtle.importKey(
+            'raw',
+            passwordBuffer,
+            { name: 'PBKDF2' },
+            false,
+            ['deriveBits']
+        );
+        
+        const derivedBits = await crypto.subtle.deriveBits(
+            {
+                name: 'PBKDF2',
+                salt: saltBuffer,
+                iterations: iterations,
+                hash: 'SHA-256'
+            },
+            key,
+            256
+        );
+        
+        const hashArray = Array.from(new Uint8Array(derivedBits));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function handleCreateUID(e) {
+        e.preventDefault();
+        
+        const nickname = document.getElementById('uidNickname').value.trim();
+        const password = uidPassword.value;
+        const confirmPassword = confirmUidPassword.value;
+        const bio = uidBio ? uidBio.value : '';
+        
+        // 验证表单
+        const isNicknameValid = nickname.length >= 2 && nickname.length <= 15;
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasLowerCase = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const isPasswordValid = password.length >= 8 && password.length <= 30 &&
+                              hasUpperCase && hasLowerCase && hasNumber;
+        const isConfirmPasswordValid = password === confirmPassword;
+
+        if (!isNicknameValid) {
+            alert('昵称长度必须在2-15个字符之间');
+            return;
+        }
+        
+        if (!isPasswordValid) {
+            alert('密码必须包含大小写字母和数字，长度8-30个字符');
+            return;
+        }
+        
+        if (!isConfirmPasswordValid) {
+            alert('两次输入的密码不一致');
+            return;
+        }
+        
+        if (!currentSalt) {
+            alert('安全参数未就绪，请稍后重试');
+            await fetchPBKDF2Params();
+            return;
+        }
+        
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 创建中...';
+        }
+        
+        try {
+            // 使用PBKDF2哈希密码
+            const hashedPassword = await pbkdf2Hash(password, currentSalt, currentIterations);
+            
+            const response = await fetch('/{{ basic_url }}/link-uid?register=true', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    nickname: nickname,
+                    password: hashedPassword,
+                    bio: bio,
+                    salt: currentSalt,
+                    iterations: currentIterations
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('子账户创建成功！');
+                window.location.reload();
+            } else {
+                alert('创建失败: ' + data.error);
+                // 重新获取安全参数
+                await fetchPBKDF2Params();
+            }
+        } catch (error) {
+            console.error('创建失败:', error);
+            alert('网络错误，请稍后重试');
+            await fetchPBKDF2Params();
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-plus-circle"></i> 创建子账户';
+            }
+        }
+    }
+
+    // 删除子账户
+    async function deleteUID(uid) {
+        if (!confirm('确定要删除这个子账户吗？此操作不可恢复！')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/{{ basic_url }}/link-uid?delete=true', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    uid: uid
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('子账户删除成功！');
+                window.location.reload();
+            } else {
+                alert('删除失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('删除失败:', error);
+            alert('网络错误，请稍后重试');
+        }
+    }
+
+    // 切换到子账户
+    async function switchToUID(uid) {
+        try {
+            const response = await fetch('/{{ basic_url }}/link-uid?login=true', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    uid: uid
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('已切换到子账户！');
+                window.location.reload();
+            } else {
+                alert('切换失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('切换失败:', error);
+            alert('网络错误，请稍后重试');
+        }
+    }
+
+    // 初始时隐藏错误信息
+    const passwordError = document.getElementById('password-error');
+    const confirmPasswordError = document.getElementById('confirmPassword-error');
+    
+    if (passwordError) passwordError.style.display = 'none';
+    if (confirmPasswordError) confirmPasswordError.style.display = 'none';
+});
+</script>
+{% endblock %}

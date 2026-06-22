@@ -1,0 +1,467 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}账号恢复 - FreeHub{% endblock %}
+
+{% block content %}
+<div class="recover-container">
+    <div class="recover-card">
+        <div class="recover-header">
+            <i class="fas fa-life-ring"></i>
+            <h1>账号恢复</h1>
+            <p>找回使用假邮箱注册的账户</p>
+        </div>
+        
+        <div class="recover-body">
+            <!-- 第一步：验证身份 -->
+            <div id="step1" class="step">
+                <h3>第一步：验证身份</h3>
+                <form id="step1Form">
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="nickname" class="input-field" placeholder="你的用户名" autocomplete="off" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="password" class="input-field" placeholder="你的密码" autocomplete="off" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>假邮箱</label>
+                        <input type="email" id="fakeEmail" class="input-field" placeholder="注册时填写的假邮箱" autocomplete="off" required>
+                        <div class="form-hint">就是那个收不到验证邮件的邮箱地址</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>新的真实邮箱</label>
+                        <input type="email" id="newEmail" class="input-field" placeholder="用来接收验证码的新邮箱" autocomplete="off" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="step1Btn">发送验证码</button>
+                </form>
+            </div>
+            
+            <!-- 第二步：输入验证码（初始隐藏） -->
+            <div id="step2" class="step" style="display: none;">
+                <h3>第二步：输入验证码</h3>
+                <p class="info-text">验证码已发送到 <strong id="newEmailDisplay"></strong></p>
+                <form id="step2Form">
+                    <div class="form-group">
+                        <label>验证码</label>
+                        <input type="text" id="verifyCode" class="input-field" placeholder="6位数字验证码" maxlength="6" autocomplete="off" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="step2Btn">验证并更新邮箱</button>
+                </form>
+                <div class="resend-area">
+                    <button type="button" class="btn-link" id="resendCodeBtn">重新发送验证码</button>
+                </div>
+            </div>
+            
+            <!-- 结果提示 -->
+            <div id="result" class="result" style="display: none;"></div>
+            
+            <div class="recover-footer">
+                <a href="/user/login">← 返回登录</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.recover-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    padding: 20px;
+}
+
+.recover-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px var(--shadow);
+}
+
+.recover-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.recover-header i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.recover-header h1 {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.recover-header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.step h3 {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.form-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 5px;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    margin-top: 15px;
+    font-size: 0.9rem;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.result {
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.result.success {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.result.error {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.recover-footer {
+    margin-top: 25px;
+    text-align: center;
+}
+
+.recover-footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.recover-footer a:hover {
+    color: var(--primary);
+}
+
+.info-text {
+    background: var(--bg-primary);
+    padding: 10px 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    border: 1px solid var(--border-color);
+}
+
+.resend-area {
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .recover-card {
+        padding: 25px 20px;
+    }
+    
+    .recover-header h1 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+let currentToken = null;
+let currentSalt = null;
+let currentIterations = null;
+
+// 获取用户特定的 PBKDF2 参数
+async function fetchPBKDF2Params(nickname) {
+    if (!nickname) return false;
+    try {
+        const resp = await fetch(`/user/api/user-pbkdf2-params?account=${encodeURIComponent(nickname)}`);
+        const data = await resp.json();
+        if (data.success) {
+            currentSalt = data.salt;
+            currentIterations = data.iterations;
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error('获取安全参数失败:', err);
+        return false;
+    }
+}
+
+// PBKDF2 哈希函数
+async function pbkdf2Hash(password, salt, iterations) {
+    const encoder = new TextEncoder();
+    const passwordBuffer = encoder.encode(password);
+    const saltBuffer = encoder.encode(salt);
+    
+    const key = await crypto.subtle.importKey(
+        'raw',
+        passwordBuffer,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveBits']
+    );
+    
+    const derivedBits = await crypto.subtle.deriveBits(
+        {
+            name: 'PBKDF2',
+            salt: saltBuffer,
+            iterations: iterations,
+            hash: 'SHA-256'
+        },
+        key,
+        256
+    );
+    
+    const hashArray = Array.from(new Uint8Array(derivedBits));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function showStep(stepNum) {
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    
+    if (stepNum === 1) {
+        step1.style.display = 'block';
+        step2.style.display = 'none';
+    } else {
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+    }
+}
+
+// 初始化：显示第一步，隐藏第二步
+showStep(1);
+
+document.getElementById('step1Form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const nickname = document.getElementById('nickname').value.trim();
+    const password = document.getElementById('password').value;
+    const fakeEmail = document.getElementById('fakeEmail').value.trim();
+    const newEmail = document.getElementById('newEmail').value.trim();
+    
+    if (!nickname || !password || !fakeEmail || !newEmail) {
+        showResult('请填写所有字段', false);
+        return;
+    }
+    
+    const btn = document.getElementById('step1Btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+    
+    try {
+        const ok = await fetchPBKDF2Params(nickname);
+        if (!ok || !currentSalt) {
+            showResult('无法获取安全参数，请确认用户名是否正确', false);
+            btn.disabled = false;
+            btn.innerHTML = '发送验证码';
+            return;
+        }
+        
+        const hashedPassword = await pbkdf2Hash(password, currentSalt, currentIterations);
+        
+        const resp = await fetch('/user/account/recover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                nickname, 
+                password: hashedPassword, 
+                fake_email: fakeEmail, 
+                new_email: newEmail 
+            })
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            currentToken = data.token;
+            document.getElementById('newEmailDisplay').textContent = newEmail;
+            showStep(2);
+            showResult('验证码已发送，请查收邮件', true);
+        } else {
+            showResult(data.error || '请求失败', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showResult('网络错误，请重试', false);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '发送验证码';
+    }
+});
+
+document.getElementById('step2Form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const code = document.getElementById('verifyCode').value.trim();
+    if (!code) {
+        showResult('请输入验证码', false);
+        return;
+    }
+    
+    const btn = document.getElementById('step2Btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
+    
+    try {
+        const resp = await fetch('/user/account/recover/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: currentToken, code: code })
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            showResult(data.message, true);
+            setTimeout(() => {
+                window.location.href = '/user/login';
+            }, 3000);
+        } else {
+            showResult(data.error || '验证失败', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showResult('网络错误，请重试', false);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '验证并更新邮箱';
+    }
+});
+
+document.getElementById('resendCodeBtn').addEventListener('click', async () => {
+    const nickname = document.getElementById('nickname').value;
+    const password = document.getElementById('password').value;
+    const fakeEmail = document.getElementById('fakeEmail').value;
+    const newEmail = document.getElementById('newEmail').value;
+    
+    const btn = document.getElementById('resendCodeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '发送中...';
+    
+    try {
+        const ok = await fetchPBKDF2Params(nickname);
+        if (!ok || !currentSalt) {
+            showResult('无法获取安全参数，请确认用户名是否正确', false);
+            btn.disabled = false;
+            btn.innerHTML = '重新发送验证码';
+            return;
+        }
+        
+        const hashedPassword = await pbkdf2Hash(password, currentSalt, currentIterations);
+        
+        const resp = await fetch('/user/account/recover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                nickname, 
+                password: hashedPassword, 
+                fake_email: fakeEmail, 
+                new_email: newEmail 
+            })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            currentToken = data.token;
+            showResult('验证码已重新发送', true);
+        } else {
+            showResult(data.error || '发送失败', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showResult('发送失败', false);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '重新发送验证码';
+    }
+});
+
+function showResult(msg, isSuccess) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.textContent = msg;
+    resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+    resultDiv.style.display = 'block';
+    setTimeout(() => {
+        resultDiv.style.display = 'none';
+    }, 5000);
+}
+</script>
+{% endblock %}

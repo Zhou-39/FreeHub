@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="{{ theme }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FreeHub - 开放的代码与资源共享平台{% endblock %}</title>
+    <meta name="description" content="FreeHub是一个自由开放的代码、资源共享社区，支持文章发布、私信、匿名子账户等功能。">
+    <meta name="keywords" content="代码分享,资源分享,开源社区,匿名账户,FreeHub">
+    <link rel="icon" href="{{ url_for('favicon') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+    <style nonce="{{ request.nonce }}">
+        :root {
+            /* 默认主题变量 - 跟随系统 */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-muted: #868e96;
+            --border-color: #dee2e6;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --primary: #4361ee;
+            --primary-light: #4cc9f0;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --success: #4ade80;
+            --warning: #facc15;
+            --danger: #f87171;
+            --info: #38bdf8;
+            
+            /* 尺寸变量 */
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --border-radius: 8px;
+            --border-radius-lg: 12px;
+            --transition-speed: 0.3s;
+        }
+
+        /* 深色主题 */
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #475569;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        /* 浅色主题 */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-muted: #868e96;
+            --border-color: #dee2e6;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 导航栏样式 */
+        .navbar {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+            height: var(--header-height);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            gap: 8px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            transition: all var(--transition-speed) ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background-color: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .nav-link i {
+            font-size: 1rem;
+        }
+
+        /* ========== 品牌区域样式 ========== */
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .brand-link {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-decoration: none;
+            transition: color var(--transition-speed) ease;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            position: relative;
+            z-index: 1002;
+        }
+
+        .brand-link:hover {
+            color: var(--primary-light);
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(79, 70, 229, 0.1));
+        }
+
+        /* 品牌下拉容器 */
+        .brand-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001;
+            pointer-events: none;
+        }
+
+        /* 填补空隙，防止鼠标移动时菜单消失 */
+        .brand-dropdown::before {
+            content: '';
+            position: absolute;
+            top: -16px;
+            left: 0;
+            width: 100%;
+            height: 16px;
+            background: transparent;
+        }
+
+        .navbar-brand:hover .brand-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        /* 品牌菜单 */
+        .brand-menu {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 12px 32px var(--shadow);
+            min-width: 280px;
+            padding: 8px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* 菜单项 */
+        .brand-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .brand-menu-item:hover {
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(79, 70, 229, 0.1));
+            transform: translateX(4px);
+        }
+
+        .brand-menu-item > i:first-child {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            font-size: 1rem;
+            color: var(--primary);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .brand-menu-item:hover > i:first-child {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .brand-item-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .brand-item-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .brand-item-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* 子菜单箭头 */
+        .submenu-arrow {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            transition: transform 0.3s ease;
+        }
+
+        .brand-menu-item.has-submenu:hover .submenu-arrow {
+            transform: rotate(90deg);
+        }
+
+        /* 分站子菜单 */
+        .brand-submenu {
+            position: absolute;
+            left: calc(100% + 4px);
+            top: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 12px 32px var(--shadow);
+            min-width: 260px;
+            padding: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(-10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        /* 填补横向空隙，防止鼠标移动到子菜单时消失 */
+        .brand-submenu::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -12px;
+            width: 12px;
+            height: 100%;
+            background: transparent;
+        }
+
+        .brand-menu-item.has-submenu:hover .brand-submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+
+        .brand-submenu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .brand-submenu-item:hover {
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(79, 70, 229, 0.1));
+            transform: translateX(4px);
+        }
+
+        .brand-submenu-item i {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            font-size: 1rem;
+            color: var(--primary-light);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .brand-submenu-item:hover i {
+            background: var(--primary-light);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .submenu-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            display: block;
+        }
+
+        .submenu-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* Share 分站简介提示 */
+        .brand-submenu-tip {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+            margin-top: 4px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(67, 97, 238, 0.08));
+            border-radius: var(--border-radius);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            border-left: 3px solid var(--primary-light);
+        }
+
+        .brand-submenu-tip i {
+            color: var(--primary-light);
+            font-size: 0.8rem;
+            margin-top: 1px;
+            flex-shrink: 0;
+            width: auto !important;
+            height: auto !important;
+            background: none !important;
+        }
+
+        .brand-submenu-tip strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* 分割线 */
+        .brand-menu-divider {
+            height: 1px;
+            background: linear-gradient(
+                to right,
+                transparent,
+                var(--border-color) 20%,
+                var(--border-color) 80%,
+                transparent
+            );
+            margin: 8px 12px;
+            position: relative;
+        }
+
+        /* 分割线上的文字 */
+        .brand-menu-divider::after {
+            content: '支持我们 💝';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-secondary);
+            padding: 0 12px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        /* 支持我们特殊样式 */
+        .brand-support-item {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.05), rgba(255, 159, 67, 0.05));
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .brand-support-item:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 159, 67, 0.1));
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
+        .brand-support-item > i:first-child {
+            background: linear-gradient(135deg, #ff6b6b, #ff9f43);
+            color: white;
+            animation: heartbeat 1.5s ease infinite;
+        }
+
+        .brand-support-item:hover > i:first-child {
+            background: linear-gradient(135deg, #ff9f43, #ff6b6b);
+        }
+
+        @keyframes heartbeat {
+            0%, 100% {
+                transform: scale(1);
+            }
+            15% {
+                transform: scale(1.15);
+            }
+            30% {
+                transform: scale(1);
+            }
+            45% {
+                transform: scale(1.1);
+            }
+            60% {
+                transform: scale(1);
+            }
+        }
+
+        /* 角色徽章 */
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .role-badge.user {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        .role-badge.admin {
+            background: linear-gradient(135deg, #f97316, #fb923c);
+            color: white;
+            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+        }
+        
+        .role-badge.superadmin {
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            color: white;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+        
+        .role-badge.owner {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: white;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+        }
+
+        /* 身份标识徽章 - 子账户模式 */
+        .identity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+        }
+
+        .identity-badge i {
+            font-size: 0.9rem;
+        }
+
+        .switch-link {
+            color: white;
+            text-decoration: none;
+            opacity: 0.9;
+            transition: opacity var(--transition-speed) ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .switch-link:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        /* 用户菜单 */
+        .user-menu {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 30px;
+            transition: background-color var(--transition-speed) ease;
+            border: 1px solid transparent;
+        }
+
+        .user-menu:hover {
+            background-color: var(--bg-tertiary);
+            border-color: var(--border-color);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+        }
+
+        .user-avatar-placeholder {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+            border: 2px solid var(--primary);
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 下拉菜单 */
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 8px 24px var(--shadow);
+            min-width: 220px;
+            padding: 8px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all var(--transition-speed) ease;
+            z-index: 1001;
+        }
+
+        .user-menu:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: background-color var(--transition-speed) ease;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .dropdown-item i {
+            width: 18px;
+            text-align: center;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 8px 0;
+        }
+
+        /* 未读消息徽章 */
+        .unread-badge {
+            display: none;
+            margin-left: auto;
+            background: var(--danger);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .unread-badge.visible {
+            display: inline-block;
+        }
+
+        /* 主题切换弹窗 */
+        .theme-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .theme-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--bg-primary);
+            border-radius: var(--border-radius-lg);
+            padding: 30px;
+            box-shadow: 0 20px 40px var(--shadow);
+            min-width: 320px;
+            border: 1px solid var(--border-color);
+        }
+
+        .theme-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .theme-modal-header h3 {
+            color: var(--text-primary);
+            font-size: 1.3rem;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .close-modal:hover {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .theme-option:hover {
+            border-color: var(--primary);
+            background-color: var(--bg-secondary);
+            transform: translateX(5px);
+        }
+
+        .theme-option.active {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .theme-option i {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .theme-option-info h4 {
+            font-size: 1rem;
+            margin-bottom: 2px;
+        }
+
+        .theme-option-info p {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* 主要内容区域 */
+        .main-content {
+            flex: 1;
+            min-height: calc(100vh - var(--header-height));
+            padding: 24px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 调试信息 */
+        .debug-info {
+            background: #ffd700;
+            color: #000;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            font-size: 12px;
+            font-family: monospace;
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        /* 链接样式 */
+        a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color var(--transition-speed) ease;
+        }
+
+        a:hover {
+            color: var(--primary-light);
+        }
+
+        /* 举报按钮样式 */
+        .report-btn {
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+        }
+
+        .report-btn:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        /* 举报成功提示 */
+        .report-success {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--success);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .report-success i {
+            font-size: 1.2rem;
+        }
+
+        .report-error {
+            background: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .report-success.fade-out {
+            animation: fadeOut 0.3s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0 16px;
+            }
+
+            .nav-link span {
+                display: none;
+            }
+
+            .nav-link i {
+                font-size: 1.2rem;
+            }
+
+            .user-name {
+                display: none;
+            }
+
+            .role-badge span,
+            .identity-badge span {
+                display: none;
+            }
+
+            .main-content {
+                padding: 16px;
+            }
+
+            .theme-modal-content {
+                width: 90%;
+                padding: 20px;
+            }
+
+            .brand-dropdown {
+                left: -10px;
+            }
+            
+            .brand-menu {
+                min-width: 260px;
+            }
+            
+            .brand-submenu {
+                position: static;
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                margin-left: 48px;
+                margin-top: 4px;
+                margin-bottom: 4px;
+                background: transparent;
+                pointer-events: auto;
+                min-width: auto;
+            }
+            
+            .brand-submenu::before {
+                display: none;
+            }
+            
+            .brand-submenu-item {
+                padding: 10px 12px;
+                border-radius: var(--border-radius);
+                background: var(--bg-tertiary);
+                margin-bottom: 4px;
+            }
+            
+            .brand-menu-item.has-submenu:hover .brand-submenu {
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+            }
+            
+            .brand-submenu-tip {
+                margin-left: 0;
+                font-size: 0.65rem;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <!-- FreeHub 文字链接（触发悬浮菜单） -->
+            <a href="/" class="brand-link">FreeHub</a>
+            
+            <!-- 品牌悬浮菜单 -->
+            <div class="brand-dropdown">
+                <div class="brand-menu">
+                    <!-- 主站 -->
+                    <a href="/" class="brand-menu-item">
+                        <i class="fas fa-home"></i>
+                        <div class="brand-item-content">
+                            <span class="brand-item-title">主站</span>
+                            <span class="brand-item-desc">FreeHub 社区首页</span>
+                        </div>
+                    </a>
+                    
+                    <!-- 分站（带子菜单） -->
+                    <div class="brand-menu-item has-submenu">
+                        <i class="fas fa-sitemap"></i>
+                        <div class="brand-item-content">
+                            <span class="brand-item-title">分站</span>
+                            <span class="brand-item-desc">探索更多服务</span>
+                        </div>
+                        <i class="fas fa-chevron-right submenu-arrow"></i>
+                        
+                        <!-- 分站子菜单 -->
+                        <div class="brand-submenu">
+                            <a href="https://ide.free-hub.cn" class="brand-submenu-item">
+                                <i class="fas fa-code"></i>
+                                <div>
+                                    <span class="submenu-title">IDE 分站</span>
+                                    <span class="submenu-desc">在线代码编辑器</span>
+                                </div>
+                            </a>
+                            <a href="https://share.free-hub.cn" class="brand-submenu-item" target="_blank">
+                                <i class="fas fa-globe"></i>
+                                <div>
+                                    <span class="submenu-title">Share 分站</span>
+                                    <span class="submenu-desc">免费推广你的开发者网站</span>
+                                </div>
+                            </a>
+                            
+                            <!-- Share 分站简介提示 -->
+                            <div class="brand-submenu-tip">
+                                <i class="fas fa-info-circle"></i>
+                                <span>注册主站后即可申请 <strong>xxx.share.free-hub.cn</strong> 三级子域名，免费推广你的网站</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 分割线 -->
+                    <div class="brand-menu-divider"></div>
+                    
+                    <!-- 支持我们 -->
+                    <a href="/donate" class="brand-menu-item brand-support-item">
+                        <i class="fas fa-heart"></i>
+                        <div class="brand-item-content">
+                            <span class="brand-item-title">支持我们 💝</span>
+                            <span class="brand-item-desc">助力社区发展</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <ul class="navbar-nav">
+            <!-- ========== 公共导航项 - 所有用户可见 ========== -->
+            <li class="nav-item">
+                <a href="/" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>首页</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/about" class="nav-link">
+                    <i class="fas fa-info-circle"></i>
+                    <span>关于</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/contact" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    <span>联系</span>
+                </a>
+            </li>
+            
+            <!-- 公开文件仓库 - 所有人可见 -->
+            <li class="nav-item">
+                <a href="/user/public/uploads" class="nav-link">
+                    <i class="fas fa-cloud"></i>
+                    <span>公开仓库</span>
+                </a>
+            </li>
+            
+            <!-- 普通用户导航项 - 任何人可访问帖子/文章列表 -->
+            <li class="nav-item">
+                <a href="/user/posts" class="nav-link">
+                    <i class="fas fa-comments"></i>
+                    <span>帖子</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/user/articles" class="nav-link">
+                    <i class="fas fa-book"></i>
+                    <span>文章</span>
+                </a>
+            </li>
+
+            <!-- ========== 悬赏市场导航项 - 所有人可见 ========== -->
+            <li class="nav-item">
+                <a href="/user/bounty" class="nav-link">
+                    <i class="fas fa-gavel"></i>
+                    <span>悬赏</span>
+                </a>
+            </li>
+
+            <!-- ========== 好友导航项 - 仅登录用户可见 ========== -->
+            {% if role[1] %}
+            <li class="nav-item">
+                <a href="/user/friends" class="nav-link">
+                    <i class="fas fa-user-friends"></i>
+                    <span>好友</span>
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- ========== 管理员导航项 - 仅管理员可见 ========== -->
+            {% if role[0] == 'Admins' %}
+            <li class="nav-item">
+                <a href="/admin/dashboard" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>仪表盘</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/uids" class="nav-link">
+                    <i class="fas fa-user-secret"></i>
+                    <span>UID管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/posts" class="nav-link">
+                    <i class="fas fa-file-alt"></i>
+                    <span>帖子管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/articles" class="nav-link">
+                    <i class="fas fa-book-open"></i>
+                    <span>文章管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/uploads" class="nav-link">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>文件管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/announcements" class="nav-link">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>公告管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/logs" class="nav-link">
+                    <i class="fas fa-history"></i>
+                    <span>日志</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            <!-- ========== 超级管理员导航项 - 仅超级管理员可见 ========== -->
+            {% if role[0] == 'SuperAdmins' %}
+            <li class="nav-item">
+                <a href="{{ url_for('superadmin.dashboard') }}" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>仪表盘</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('superadmin.admins') }}" class="nav-link">
+                    <i class="fas fa-user-cog"></i>
+                    <span>管理员管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('superadmin.posts') }}" class="nav-link">
+                    <i class="fas fa-file-alt"></i>
+                    <span>帖子管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('superadmin.uploads') }}" class="nav-link">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>文件管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('superadmin.announcements') }}" class="nav-link">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>公告管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('superadmin.logs') }}" class="nav-link">
+                    <i class="fas fa-history"></i>
+                    <span>日志</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            <!-- ========== 所有者导航项 - 仅所有者可见 ========== -->
+            {% if role[0] == 'Owners' %}
+            <li class="nav-item">
+                <a href="{{ url_for('owner.dashboard') }}" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>仪表盘</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.invite_codes') }}" class="nav-link">
+                    <i class="fas fa-ticket-alt"></i>
+                    <span>邀请码管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.users') }}" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span>用户管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.admins') }}" class="nav-link">
+                    <i class="fas fa-user-tie"></i>
+                    <span>管理员管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.uids') }}" class="nav-link">
+                    <i class="fas fa-user-secret"></i>
+                    <span>UID管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.posts') }}" class="nav-link">
+                    <i class="fas fa-file-alt"></i>
+                    <span>帖子管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.uploads') }}" class="nav-link">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>文件管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.announcements') }}" class="nav-link">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>公告管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.logs') }}" class="nav-link">
+                    <i class="fas fa-history"></i>
+                    <span>系统日志</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('owner.settings') }}" class="nav-link">
+                    <i class="fas fa-cogs"></i>
+                    <span>系统设置</span>
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- 调试信息（仅开发环境） -->
+            {% if config.DEBUG %}
+            <div class="debug-info">
+                <strong>Debug:</strong> role={{ role[0] }}, basic_url={{ basic_url }}, session_role={{ session.get('role') }}
+            </div>
+            {% endif %}
+
+            <!-- 身份提示（仅对普通用户显示，当处于子账户模式时） -->
+            {% if role[0] == 'Users' and current_user and current_user.is_authenticated %}
+                {% if session.get('current_uid') %}
+                <div class="identity-badge">
+                    <i class="fas fa-user-secret"></i>
+                    <span>子账户：{{ session.get('current_uid_nickname') }}</span>
+                    <a href="/user/switch-to-main" class="switch-link" id="switchToMainLink">
+                        <i class="fas fa-exchange-alt"></i>
+                    </a>
+                </div>
+                {% else %}
+                <div class="identity-badge">
+                    <i class="fas fa-user-shield"></i>
+                    <span>主账户</span>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- ========== 用户菜单 ========== -->
+            <li class="nav-item">
+                <div class="user-menu">
+                    {% if role[1] %}
+                        <!-- 用户已登录 - 显示头像 -->
+                        {% if role[0] == 'Users' %}
+                            <!-- 普通用户头像 -->
+                            {% if session.get('current_uid') %}
+                                <!-- 子账户模式 - 显示UID头像 -->
+                                <div class="user-avatar-placeholder">
+                                    {{ session.get('current_uid_nickname')[0] | upper if session.get('current_uid_nickname') else '?' }}
+                                </div>
+                                <span class="user-name">{{ session.get('current_uid_nickname') }}</span>
+                            {% else %}
+                                <!-- 主账户模式 - 显示ID头像 -->
+                                {% if has_avatar %}
+                                    <img src="{{ url_for('static', filename='img/upload/avatar/Users/' ~ role[1].nickname ~ '.png') }}" 
+                                         alt="头像" 
+                                         class="user-avatar"
+                                         id="userAvatar"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="user-avatar-placeholder" id="avatarPlaceholder" style="display: none;">
+                                        {{ role[1].nickname[0] | upper }}
+                                    </div>
+                                {% else %}
+                                    <div class="user-avatar-placeholder">
+                                        {{ role[1].nickname[0] | upper }}
+                                    </div>
+                                {% endif %}
+                                <span class="user-name">{{ role[1].nickname }}</span>
+                            {% endif %}
+                        {% elif role[0] == 'Admins' %}
+                            <!-- 管理员头像 -->
+                            {% if has_avatar %}
+                                <img src="{{ url_for('static', filename='img/upload/avatar/Admins/' ~ role[1].nickname ~ '.png') }}" 
+                                     alt="头像" 
+                                     class="user-avatar"
+                                     id="userAvatar"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="user-avatar-placeholder" id="avatarPlaceholder" style="display: none;">
+                                    {{ role[1].nickname[0] | upper }}
+                                </div>
+                            {% else %}
+                                <div class="user-avatar-placeholder">
+                                    {{ role[1].nickname[0] | upper }}
+                                </div>
+                            {% endif %}
+                            <span class="user-name">{{ role[1].nickname }}</span>
+                        {% elif role[0] == 'SuperAdmins' %}
+                            <!-- 超级管理员头像 -->
+                            {% if has_avatar %}
+                                <img src="{{ url_for('static', filename='img/upload/avatar/SuperAdmins/' ~ role[1].nickname ~ '.png') }}" 
+                                     alt="头像" 
+                                     class="user-avatar"
+                                     id="userAvatar"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="user-avatar-placeholder" id="avatarPlaceholder" style="display: none;">
+                                    {{ role[1].nickname[0] | upper }}
+                                </div>
+                            {% else %}
+                                <div class="user-avatar-placeholder">
+                                    {{ role[1].nickname[0] | upper }}
+                                </div>
+                            {% endif %}
+                            <span class="user-name">{{ role[1].nickname }}</span>
+                        {% elif role[0] == 'Owners' %}
+                            <!-- 所有者头像 -->
+                            {% if has_avatar %}
+                                <img src="{{ url_for('static', filename='img/upload/avatar/Owners/' ~ role[1].nickname ~ '.png') }}" 
+                                     alt="头像" 
+                                     class="user-avatar"
+                                     id="userAvatar"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="user-avatar-placeholder" id="avatarPlaceholder" style="display: none;">
+                                    {{ role[1].nickname[0] | upper }}
+                                </div>
+                            {% else %}
+                                <div class="user-avatar-placeholder">
+                                    {{ role[1].nickname[0] | upper }}
+                                </div>
+                            {% endif %}
+                            <span class="user-name">{{ role[1].nickname }}</span>
+                        {% endif %}
+                        
+                        <!-- 角色徽章 -->
+                        <span class="role-badge 
+                            {% if role[0] == 'Users' %}user
+                            {% elif role[0] == 'Admins' %}admin
+                            {% elif role[0] == 'SuperAdmins' %}superadmin
+                            {% elif role[0] == 'Owners' %}owner
+                            {% endif %}">
+                            <i class="fas 
+                                {% if role[0] == 'Users' %}fa-user
+                                {% elif role[0] == 'Admins' %}fa-user-shield
+                                {% elif role[0] == 'SuperAdmins' %}fa-crown
+                                {% elif role[0] == 'Owners' %}fa-gem
+                                {% endif %}"></i>
+                            <span>
+                                {% if role[0] == 'Users' %}
+                                    {% if session.get('current_uid') %}子账户{% else %}主账户{% endif %}
+                                {% elif role[0] == 'Admins' %}管理员
+                                {% elif role[0] == 'SuperAdmins' %}超级管理员
+                                {% elif role[0] == 'Owners' %}所有者
+                                {% endif %}
+                            </span>
+                        </span>
+                    {% else %}
+                        <!-- 未登录状态 -->
+                        <div class="user-avatar-placeholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span class="user-name">游客</span>
+                    {% endif %}
+                    
+                    <!-- 下拉菜单 -->
+                    <div class="dropdown-menu">
+                        {% if role[1] %}
+                            <!-- ========== 已登录用户菜单 ========== -->
+                            
+                            <!-- 根据角色显示不同的菜单项 -->
+                            {% if role[0] == 'Users' %}
+                                <!-- 普通用户菜单 -->
+                                {% if session.get('current_uid') %}
+                                    <!-- 子账户模式菜单 -->
+                                    <a href="/user/uid-profile" class="dropdown-item">
+                                        <i class="fas fa-user-secret"></i>
+                                        <span>子账户资料</span>
+                                    </a>
+                                    <a href="/user/uploads" class="dropdown-item">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <span>我的仓库</span>
+                                    </a>
+                                    <!-- 添加私信中心入口 -->
+                                    <a href="/user/messages" class="dropdown-item" id="messageMenuItem">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>私信中心</span>
+                                        <span class="unread-badge" id="unreadMessageBadge">0</span>
+                                    </a>
+                                    <a href="/user/settings" class="dropdown-item">
+                                        <i class="fas fa-cog"></i>
+                                        <span>设置</span>
+                                    </a>
+                                {% else %}
+                                    <!-- 主账户模式菜单 -->
+                                    <a href="/user/profile" class="dropdown-item">
+                                        <i class="fas fa-user"></i>
+                                        <span>个人资料</span>
+                                    </a>
+                                    <a href="/user/link-uid" class="dropdown-item">
+                                        <i class="fas fa-user-plus"></i>
+                                        <span>管理子账户</span>
+                                    </a>
+                                    <!-- 添加积分中心入口 -->
+                                    <a href="/user/points" class="dropdown-item">
+                                        <i class="fas fa-coins"></i>
+                                        <span>积分中心</span>
+                                    </a>
+                                    <a href="/user/settings" class="dropdown-item">
+                                        <i class="fas fa-cog"></i>
+                                        <span>设置</span>
+                                    </a>
+                                {% endif %}
+                            {% elif role[0] == 'Admins' %}
+                                <!-- 管理员菜单 -->
+                                <a href="/admin/profile" class="dropdown-item">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>个人资料</span>
+                                </a>
+                                <a href="/admin/settings" class="dropdown-item">
+                                    <i class="fas fa-cog"></i>
+                                    <span>设置</span>
+                                </a>
+                                <a href="/admin/change-password" class="dropdown-item">
+                                    <i class="fas fa-key"></i>
+                                    <span>修改密码</span>
+                                </a>
+                                <a href="/admin/upload-avatar" class="dropdown-item">
+                                    <i class="fas fa-camera"></i>
+                                    <span>上传头像</span>
+                                </a>
+                            {% elif role[0] == 'SuperAdmins' %}
+                                <!-- 超级管理员菜单 -->
+                                <a href="{{ url_for('superadmin.profile') }}" class="dropdown-item">
+                                    <i class="fas fa-crown"></i>
+                                    <span>个人资料</span>
+                                </a>
+                                <a href="{{ url_for('superadmin.change_password') }}" class="dropdown-item">
+                                    <i class="fas fa-key"></i>
+                                    <span>修改密码</span>
+                                </a>
+                                <a href="{{ url_for('superadmin.upload_avatar') }}" class="dropdown-item">
+                                    <i class="fas fa-camera"></i>
+                                    <span>上传头像</span>
+                                </a>
+                            {% elif role[0] == 'Owners' %}
+                                <!-- 所有者菜单 -->
+                                <a href="{{ url_for('owner.profile') }}" class="dropdown-item">
+                                    <i class="fas fa-gem"></i>
+                                    <span>个人资料</span>
+                                </a>
+                                <a href="{{ url_for('owner.change_password') }}" class="dropdown-item">
+                                    <i class="fas fa-key"></i>
+                                    <span>修改密码</span>
+                                </a>
+                                <a href="{{ url_for('owner.upload_avatar') }}" class="dropdown-item">
+                                    <i class="fas fa-camera"></i>
+                                    <span>上传头像</span>
+                                </a>
+                            {% endif %}
+                            
+                            <div class="dropdown-divider"></div>
+                            
+                            <!-- 主题切换 - 所有用户通用 -->
+                            <button class="dropdown-item open-theme-modal-btn">
+                                <i class="fas fa-palette"></i>
+                                <span>主题切换</span>
+                            </button>
+                            
+                            <div class="dropdown-divider"></div>
+                            
+                            <!-- 退出登录 - 所有用户通用 -->
+                            <a href="/{{ basic_url }}/logout" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>退出登录</span>
+                            </a>
+                        {% else %}
+                            <!-- ========== 未登录菜单 ========== -->
+                            <a href="/user/login" class="dropdown-item">
+                                <i class="fas fa-sign-in-alt"></i>
+                                <span>登录</span>
+                            </a>
+                            <a href="/user/register" class="dropdown-item">
+                                <i class="fas fa-user-plus"></i>
+                                <span>注册</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item open-theme-modal-btn">
+                                <i class="fas fa-palette"></i>
+                                <span>主题切换</span>
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 主题切换弹窗 -->
+    <div id="themeModal" class="theme-modal">
+        <div class="theme-modal-content">
+            <div class="theme-modal-header">
+                <h3><i class="fas fa-palette"></i> 选择主题</h3>
+                <button class="close-modal" id="closeThemeModalBtn">&times;</button>
+            </div>
+            
+            <div class="theme-option" data-theme="system">
+                <i class="fas fa-desktop"></i>
+                <div class="theme-option-info">
+                    <h4>跟随系统</h4>
+                    <p>自动匹配系统主题</p>
+                </div>
+            </div>
+            
+            <div class="theme-option" data-theme="light">
+                <i class="fas fa-sun"></i>
+                <div class="theme-option-info">
+                    <h4>浅色主题</h4>
+                    <p>明亮舒适的界面</p>
+                </div>
+            </div>
+            
+            <div class="theme-option" data-theme="dark">
+                <i class="fas fa-moon"></i>
+                <div class="theme-option-info">
+                    <h4>深色主题</h4>
+                    <p>护眼暗色模式</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容 -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 举报模态框 -->
+    {% include 'base-files/report-modal.html' %}
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script nonce="{{ request.nonce }}">
+    // 当前主题
+    let currentTheme = '{{ theme if theme else "system" }}';
+
+    // 初始化主题
+    function initTheme() {
+        const savedTheme = '{{ theme if theme else "system" }}';
+        setTheme(savedTheme);
+        updateThemeSelection(savedTheme);
+    }
+
+    // 设置主题
+    function setTheme(theme) {
+        currentTheme = theme;
+        
+        if (theme === 'system') {
+            // 跟随系统
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        
+        updateThemeSelection(theme);
+    }
+
+    // 更新主题选择状态
+    function updateThemeSelection(theme) {
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.classList.remove('active');
+            if (option.dataset.theme === theme) {
+                option.classList.add('active');
+            }
+        });
+    }
+
+    // 选择主题
+    async function selectTheme(theme) {
+        setTheme(theme);
+        
+        // 保存到服务器
+        try {
+            const response = await fetch('/theme', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ theme: theme })
+            });
+            const data = await response.json();
+            if (data.success) {
+                console.log('主题已保存');
+            }
+        } catch (error) {
+            console.error('保存主题失败:', error);
+        }
+        
+        closeThemeModal();
+    }
+
+    // 打开主题弹窗
+    function openThemeModal() {
+        document.getElementById('themeModal').style.display = 'block';
+    }
+
+    // 关闭主题弹窗
+    function closeThemeModal() {
+        document.getElementById('themeModal').style.display = 'none';
+    }
+
+    // 监听系统主题变化
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (currentTheme === 'system') {
+                setTheme('system');
+            }
+        });
+    }
+
+    // 点击弹窗外部关闭
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('themeModal');
+        if (event.target === modal) {
+            closeThemeModal();
+        }
+    });
+
+    // 显示通知（可在子模板中使用）
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+            background: ${type === 'success' ? 'var(--success)' : 
+                       type === 'error' ? 'var(--danger)' : 
+                       type === 'warning' ? 'var(--warning)' : 'var(--info)'};
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                               type === 'error' ? 'exclamation-circle' : 
+                               type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <span style="margin-left: 8px;">${escapeHtml(message)}</span>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+        
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // 获取未读私信数量
+    function updateUnreadMessageCount() {
+        {% if role[0] == 'Users' and session.get('current_uid') %}
+        fetch('/user/api/messages/unread/count')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.unread_count > 0) {
+                    const badge = document.getElementById('unreadMessageBadge');
+                    if (badge) {
+                        badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+                        badge.classList.add('visible');
+                    }
+                }
+            })
+            .catch(error => console.error('获取未读消息失败:', error));
+        {% endif %}
+    }
+
+    // ================ 举报系统函数 ================
+    (function() {
+        'use strict';
+        
+        if (typeof window._reportInitialized !== 'undefined') {
+            console.log('举报系统已初始化，跳过');
+            return;
+        }
+        
+        console.log('举报系统初始化中...');
+        window._reportInitialized = true;
+        
+        window.currentReportType = null;
+        window.currentReportId = null;
+        window.selectedReason = null;
+
+        window.showReportModal = function(type, id) {
+            console.log('显示举报模态框', type, id);
+            
+            if (!type || !id) {
+                console.error('举报参数无效', type, id);
+                return;
+            }
+            
+            window.currentReportType = type;
+            window.currentReportId = id;
+            window.selectedReason = null;
+            
+            const typeNames = {
+                'post': '帖子',
+                'article': '文章',
+                'upload': '文件'
+            };
+            
+            const targetInfo = document.getElementById('reportTargetInfo');
+            if (targetInfo) {
+                targetInfo.innerHTML = `
+                    <p><i class="fas fa-info-circle"></i> 您正在举报该${typeNames[type] || '内容'}，请选择举报原因：</p>
+                `;
+            }
+            
+            loadReportReasons(type);
+            
+            const modal = document.getElementById('reportModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        };
+
+        window.closeReportModal = function() {
+            const modal = document.getElementById('reportModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            window.currentReportType = null;
+            window.currentReportId = null;
+            window.selectedReason = null;
+            
+            const desc = document.getElementById('reportDescription');
+            if (desc) {
+                desc.value = '';
+            }
+            const count = document.getElementById('descCount');
+            if (count) {
+                count.textContent = '0';
+            }
+        };
+
+        async function loadReportReasons(type) {
+            const container = document.getElementById('reportReasons');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+            
+            try {
+                const response = await fetch(`/user/api/report/reasons?type=${type}`);
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    container.innerHTML = data.data.map(reason => `
+                        <div class="report-reason-item" data-reason="${reason.code}">
+                            <input type="radio" name="reportReason" value="${reason.code}">
+                            <div class="reason-content">
+                                <div class="reason-title">${escapeHtml(reason.text)}</div>
+                                <div class="reason-desc">${escapeHtml(reason.description || '')}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    document.querySelectorAll('.report-reason-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            window.selectReason(this.dataset.reason);
+                        });
+                    });
+                } else {
+                    const defaultReasons = getDefaultReasons(type);
+                    container.innerHTML = defaultReasons.map(reason => `
+                        <div class="report-reason-item" data-reason="${reason.code}">
+                            <input type="radio" name="reportReason" value="${reason.code}">
+                            <div class="reason-content">
+                                <div class="reason-title">${escapeHtml(reason.text)}</div>
+                                <div class="reason-desc">${escapeHtml(reason.description || '')}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    document.querySelectorAll('.report-reason-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            window.selectReason(this.dataset.reason);
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('加载举报原因失败:', error);
+                container.innerHTML = '<p class="empty-state error">加载失败，请重试</p>';
+            }
+        }
+
+        function getDefaultReasons(type) {
+            const commonReasons = [
+                { code: 'spam', text: '垃圾广告', description: '包含广告、推广等内容' },
+                { code: 'porn', text: '色情低俗', description: '包含色情、低俗内容' },
+                { code: 'illegal', text: '违法信息', description: '包含违法信息' },
+                { code: 'violence', text: '暴力血腥', description: '包含暴力、血腥内容' },
+                { code: 'other', text: '其他', description: '其他违规内容' }
+            ];
+            
+            const typeSpecificReasons = {
+                'post': [
+                    { code: 'harassment', text: '人身攻击', description: '包含辱骂、攻击等内容' },
+                    { code: 'misinformation', text: '虚假信息', description: '包含谣言、虚假信息' }
+                ],
+                'article': [
+                    { code: 'plagiarism', text: '抄袭洗稿', description: '抄袭、洗稿行为' },
+                    { code: 'misinformation', text: '虚假信息', description: '包含谣言、虚假信息' }
+                ],
+                'upload': [
+                    { code: 'virus', text: '包含病毒', description: '文件包含病毒或恶意代码' },
+                    { code: 'copyright', text: '侵犯版权', description: '侵犯他人版权' },
+                    { code: 'fake', text: '虚假文件', description: '文件内容与描述不符' }
+                ]
+            };
+            
+            return [...commonReasons, ...(typeSpecificReasons[type] || [])];
+        }
+
+        window.selectReason = function(reasonCode) {
+            window.selectedReason = reasonCode;
+            
+            document.querySelectorAll('.report-reason-item').forEach(item => {
+                const radio = item.querySelector('input[type="radio"]');
+                if (item.dataset.reason === reasonCode) {
+                    radio.checked = true;
+                    item.classList.add('selected');
+                } else {
+                    radio.checked = false;
+                    item.classList.remove('selected');
+                }
+            });
+        };
+
+        window.submitReport = async function() {
+            if (!window.selectedReason) {
+                showReportToast('请选择举报原因', 'error');
+                return;
+            }
+            
+            const description = document.getElementById('reportDescription')?.value.trim() || '';
+            
+            const btn = document.getElementById('submitReportBtn');
+            if (!btn) return;
+            
+            btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 提交中...';
+            
+            try {
+                const response = await fetch('/user/api/report/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target_type: window.currentReportType,
+                        target_id: window.currentReportId,
+                        reason: window.selectedReason,
+                        description: description
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showReportToast(data.message || '举报提交成功，感谢您的反馈', 'success');
+                    window.closeReportModal();
+                    
+                    const reportBtn = document.querySelector(`.report-btn[data-type="${window.currentReportType}"][data-id="${window.currentReportId}"]`);
+                    if (reportBtn) {
+                        reportBtn.disabled = true;
+                        reportBtn.innerHTML = '<i class="fas fa-check"></i> 已举报';
+                        reportBtn.classList.add('reported');
+                    }
+                } else {
+                    throw new Error(data.error || '提交失败');
+                }
+            } catch (error) {
+                console.error('提交举报失败:', error);
+                showReportToast(error.message || '提交失败，请重试', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        };
+
+        function showReportToast(message, type) {
+            const existingToast = document.querySelector('.report-toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = `report-toast ${type}`;
+            
+            const icon = {
+                'success': 'check-circle',
+                'error': 'exclamation-circle',
+                'warning': 'exclamation-triangle',
+                'info': 'info-circle'
+            }[type] || 'info-circle';
+            
+            toast.innerHTML = `
+                <i class="fas fa-${icon}"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        console.log('举报系统初始化完成');
+    })();
+
+    // HTML转义函数（全局可用）
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 页面加载完成后绑定事件
+    document.addEventListener('DOMContentLoaded', function() {
+        initTheme();
+        
+        // 绑定主题选项点击事件
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.addEventListener('click', function() {
+                selectTheme(this.dataset.theme);
+            });
+        });
+        
+        // 绑定关闭按钮点击事件
+        const closeBtn = document.getElementById('closeThemeModalBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeThemeModal);
+        }
+        
+        // 绑定打开主题弹窗按钮
+        document.querySelectorAll('.open-theme-modal-btn').forEach(btn => {
+            btn.addEventListener('click', openThemeModal);
+        });
+        
+        // 绑定切换主账户确认
+        const switchLink = document.getElementById('switchToMainLink');
+        if (switchLink) {
+            switchLink.addEventListener('click', function(e) {
+                if (!confirm('切换回主账户？')) {
+                    e.preventDefault();
+                }
+            });
+        }
+        
+        // 获取未读私信数量
+        updateUnreadMessageCount();
+        // 每60秒更新一次
+        setInterval(updateUnreadMessageCount, 60000);
+        
+        // ================ 举报按钮事件绑定 ================
+        document.querySelectorAll('.report-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const type = this.dataset.type;
+                const id = this.dataset.id;
+                
+                {% if not session.get('current_uid') %}
+                showReportToast('请先切换到子账户', 'warning');
+                setTimeout(() => {
+                    window.location.href = '/user/link-uid';
+                }, 1500);
+                return;
+                {% endif %}
+                
+                if (window.showReportModal) {
+                    window.showReportModal(type, id);
+                } else {
+                    console.error('举报系统未初始化');
+                    showReportToast('举报系统初始化失败，请刷新页面', 'error');
+                }
+            });
+        });
+        
+        // 举报字数统计
+        const descTextarea = document.getElementById('reportDescription');
+        if (descTextarea) {
+            descTextarea.addEventListener('input', function() {
+                const count = document.getElementById('descCount');
+                if (count) {
+                    count.textContent = this.value.length;
+                }
+            });
+        }
+        
+        // 举报模态框关闭按钮
+        const closeReportModalBtn = document.getElementById('closeReportModalBtn');
+        if (closeReportModalBtn) {
+            closeReportModalBtn.addEventListener('click', function() {
+                if (window.closeReportModal) {
+                    window.closeReportModal();
+                }
+            });
+        }
+        
+        const cancelReportBtn = document.getElementById('cancelReportBtn');
+        if (cancelReportBtn) {
+            cancelReportBtn.addEventListener('click', function() {
+                if (window.closeReportModal) {
+                    window.closeReportModal();
+                }
+            });
+        }
+        
+        const modalOverlay = document.querySelector('#reportModal .modal-overlay');
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', function() {
+                if (window.closeReportModal) {
+                    window.closeReportModal();
+                }
+            });
+        }
+        
+        // 举报提交按钮
+        const submitReportBtn = document.getElementById('submitReportBtn');
+        if (submitReportBtn) {
+            submitReportBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (window.submitReport) {
+                    window.submitReport();
+                }
+            });
+        }
+    });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

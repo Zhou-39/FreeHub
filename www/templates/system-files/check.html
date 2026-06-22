@@ -1,0 +1,516 @@
+<!-- templates/system-files/check.html -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="{{ theme }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全中转站 - {{ name }}</title>
+    <style nonce="{{ request.nonce }}">
+        :root {
+            /* 默认主题变量 - 跟随系统 */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-muted: #868e96;
+            --border-color: #dee2e6;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --primary: #4361ee;
+            --primary-light: #4cc9f0;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --success: #4ade80;
+            --warning: #facc15;
+            --danger: #f87171;
+            --info: #38bdf8;
+            
+            /* 尺寸变量 */
+            --header-height: 60px;
+            --border-radius: 8px;
+            --border-radius-lg: 12px;
+            --transition-speed: 0.3s;
+            --container-width: 1200px;
+        }
+
+        /* 深色主题 */
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #475569;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        /* 浅色主题 */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-muted: #868e96;
+            --border-color: #dee2e6;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6;
+        }
+
+        /* 导航栏简易版 */
+        .mini-header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .mini-header .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* 主要内容区域 - 居中卡片 */
+        .container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 8px 24px var(--shadow);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title .icon {
+            color: var(--primary);
+        }
+
+        .card-text {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+
+        /* 信息列表 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+            background-color: var(--bg-primary);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-weight: 500;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #e53e3e;
+        }
+
+        /* 状态指示器 */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-safe {
+            background-color: rgba(74, 222, 128, 0.2);
+            color: var(--success);
+        }
+
+        .status-risk {
+            background-color: rgba(245, 158, 158, 0.2);
+            color: var(--danger);
+        }
+
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 隐藏类 */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .button-group {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 简易头部 -->
+    <header class="mini-header">
+        <a href="/" class="logo">{{ name }}</a>
+        <button class="theme-toggle" id="themeToggleBtn">切换主题</button>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="container">
+        <div class="card">
+            <!-- 加载状态 -->
+            <div id="loading" class="text-center">
+                <div class="loading-spinner"></div>
+                <p>正在检查链接安全性...</p>
+            </div>
+
+            <!-- 结果内容 -->
+            <div id="content" class="hidden">
+                <h2 class="card-title">
+                    <i class="fas fa-shield-alt icon"></i>
+                    <span id="result-title">安全检查结果</span>
+                </h2>
+
+                <!-- 目标链接 -->
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">目标地址</span>
+                        <a href="#" id="target-url" class="info-value" target="_blank">Loading...</a>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">检测状态</span>
+                        <span id="status-badge" class="info-value status-badge">Unknown</span>
+                    </div>
+                </div>
+
+                <!-- 详细信息 -->
+                <div class="info-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="info-item">
+                        <span class="info-label">综合概率</span>
+                        <span id="prob" class="info-value">--%</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">图片风险</span>
+                        <span id="img-prob" class="info-value">--%</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">文本风险</span>
+                        <span id="text-score" class="info-value">--%</span>
+                    </div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">风险原因</span>
+                    <span id="reason" class="info-value">--</span>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="button-group">
+                    <button id="redirectBtn" class="btn btn-primary">
+                        <i class="fas fa-check"></i>
+                        确认访问
+                    </button>
+                    <a href="javascript:void(0)" id="closeBtn" class="btn btn-outline">
+                        <i class="fas fa-times"></i>
+                        取消/关闭
+                    </a>
+                </div>
+            </div>
+
+            <!-- 错误信息 -->
+            <div id="error" class="text-center hidden" style="color: var(--danger);">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p id="error-message">发生错误</p>
+            </div>
+        </div>
+    </main>
+
+    <script nonce="{{ request.nonce }}">
+        // 模拟后端返回的数据结构
+        // 实际使用中，这些数据应由 Flask 模板引擎渲染，或通过 JS 获取
+        const data = {
+            url: "{{ url }}",
+            host: "{{ host }}",
+            safe: {{ 'true' if safe else 'false' }},
+            probability: {{ probability|default(0) }},
+            image_prob: {{ image_prob|default(0) }},
+            text_score: {{ text_score|default(0) }},
+            reason: "{{ reason|default('N/A') }}",
+            imgs_checked: {{ imgs_checked|default(0) }}
+        };
+
+        // 页面加载完成后渲染数据
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const loadingEl = document.getElementById('loading');
+            const contentEl = document.getElementById('content');
+            const errorEl = document.getElementById('error');
+            const errorMessage = document.getElementById('error-message');
+            const targetUrl = document.getElementById('target-url');
+            const probEl = document.getElementById('prob');
+            const imgProbEl = document.getElementById('img-prob');
+            const textScoreEl = document.getElementById('text-score');
+            const reasonEl = document.getElementById('reason');
+            const statusBadge = document.getElementById('status-badge');
+            const resultTitle = document.getElementById('result-title');
+            const redirectBtn = document.getElementById('redirectBtn');
+            const closeBtn = document.getElementById('closeBtn');
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+            // 简单的防XSS处理
+            function sanitize(str) {
+                if (!str) return '';
+                const temp = document.createElement('div');
+                temp.textContent = str;
+                return temp.innerHTML;
+            }
+
+            // 初始化主题
+            function initTheme() {
+                const savedTheme = localStorage.getItem('theme') || 'system';
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+
+            // 切换主题
+            function toggleTheme() {
+                const current = document.documentElement.getAttribute('data-theme');
+                let next = 'light';
+                if (current === 'light') next = 'dark';
+                else if (current === 'dark') next = 'system';
+                else if (current === 'system') next = 'light';
+                
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+            }
+
+            // 主题切换按钮
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', toggleTheme);
+            }
+
+            // 等待 1.5 秒模拟检查延迟，然后显示内容
+            setTimeout(() => {
+                if (!data.url) {
+                    if (loadingEl) loadingEl.classList.add('hidden');
+                    if (errorEl) {
+                        errorEl.classList.remove('hidden');
+                        if (errorMessage) errorMessage.textContent = '无效的链接地址';
+                    }
+                    return;
+                }
+
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (contentEl) contentEl.classList.remove('hidden');
+
+                // 填充数据
+                if (targetUrl) {
+                    targetUrl.href = data.url;
+                    targetUrl.textContent = data.url.length > 50 ? data.url.substring(0, 50) + '...' : data.url;
+                }
+                
+                if (probEl) probEl.textContent = (data.probability * 100).toFixed(2) + '%';
+                if (imgProbEl) imgProbEl.textContent = (data.image_prob * 100).toFixed(2) + '%';
+                if (textScoreEl) textScoreEl.textContent = (data.text_score * 100).toFixed(2) + '%';
+                if (reasonEl) reasonEl.textContent = sanitize(data.reason);
+                
+                if (statusBadge && resultTitle) {
+                    if (data.safe) {
+                        statusBadge.className = 'info-value status-badge status-safe';
+                        statusBadge.textContent = '安全';
+                        resultTitle.textContent = '✅ 链接安全';
+                    } else {
+                        statusBadge.className = 'info-value status-badge status-risk';
+                        statusBadge.textContent = '风险';
+                        resultTitle.textContent = '⚠️ 检测到风险';
+                        
+                        if (redirectBtn) {
+                            redirectBtn.classList.remove('btn-primary');
+                            redirectBtn.classList.add('btn-danger');
+                            redirectBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 强制访问';
+                        }
+                    }
+                }
+            }, 1500);
+
+            // 执行跳转
+            function proceed() {
+                if (!redirectBtn) return;
+                
+                redirectBtn.innerHTML = '<div class="loading-spinner"></div> 跳转中...';
+                redirectBtn.disabled = true;
+                
+                setTimeout(() => {
+                    window.location.href = data.url;
+                }, 1000);
+            }
+
+            // 关闭页面
+            function closePage() {
+                if (window.opener) {
+                    window.close();
+                } else {
+                    window.location.href = '/';
+                }
+            }
+
+            // 绑定跳转按钮
+            if (redirectBtn) {
+                redirectBtn.addEventListener('click', proceed);
+            }
+
+            // 绑定关闭按钮
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    closePage();
+                });
+            }
+
+            // 初始化主题
+            initTheme();
+        });
+    </script>
+</body>
+</html>

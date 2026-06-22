@@ -1,0 +1,745 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}登录 - {{ role[0] }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style nonce="{{ request.nonce }}">
+    /* 登录页专用样式 */
+    .login-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        max-width: 1100px;
+        margin: 0 auto;
+        background: var(--bg-secondary);
+        border-radius: 28px;
+        box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+
+    .login-form-section {
+        flex: 1.2;
+        min-width: 280px;
+        padding: 2.5rem 2rem;
+        background: var(--bg-secondary);
+    }
+
+    .help-section {
+        flex: 0.9;
+        background: linear-gradient(145deg, var(--bg-tertiary), var(--bg-primary));
+        padding: 2.5rem 2rem;
+        border-left: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .auth-header .icon-circle {
+        background: rgba(67, 97, 238, 0.12);
+        width: 70px;
+        height: 70px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 60px;
+        margin-bottom: 1rem;
+    }
+
+    .auth-header i.fa-lock {
+        font-size: 2.2rem;
+        color: var(--primary);
+    }
+
+    .auth-header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+
+    .form-group {
+        position: relative;
+        margin-bottom: 1.8rem;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 1rem 1rem 0.6rem 1rem;
+        border: 1.5px solid var(--border-color);
+        border-radius: 20px;
+        background: var(--bg-primary);
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        outline: none;
+        color: var(--text-primary);
+    }
+
+    .input-field:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    }
+
+    .input-label {
+        position: absolute;
+        left: 1rem;
+        top: 0.85rem;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        pointer-events: none;
+        transition: top 0.2s ease, left 0.2s ease, font-size 0.2s ease, color 0.2s ease;
+        background: transparent;
+        padding: 0 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* 优化聚焦动画 - 更平滑的过渡 */
+    .input-field:focus ~ .input-label,
+    .input-field:not(:placeholder-shown) ~ .input-label {
+        top: -0.6rem;
+        left: 0.8rem;
+        font-size: 0.7rem;
+        background: var(--bg-secondary);
+        color: var(--primary);
+        font-weight: 500;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 4px;
+        border-radius: 30px;
+        transition: color 0.2s ease;
+    }
+
+    .password-toggle:hover {
+        color: var(--primary);
+    }
+
+    .captcha-group {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .captcha-input {
+        flex: 1;
+    }
+
+    /* 验证码图片 - 匹配 captcha_maker.py 中的尺寸 (190x60) */
+    .captcha-image {
+        flex-shrink: 0;
+        cursor: pointer;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1.5px solid var(--border-color);
+        width: 190px;
+        height: 60px;
+        background: var(--bg-primary);
+        transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .captcha-image img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .captcha-image:hover {
+        border-color: var(--primary);
+        transform: scale(0.98);
+    }
+
+    .error-message {
+        display: none;
+        color: var(--danger);
+        font-size: 0.7rem;
+        margin-top: 6px;
+        margin-left: 12px;
+    }
+
+    .btn-primary {
+        width: 100%;
+        background: linear-gradient(95deg, var(--primary), var(--secondary));
+        border: none;
+        border-radius: 40px;
+        padding: 14px;
+        font-weight: 700;
+        font-size: 1rem;
+        color: white;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 4px 10px rgba(67, 97, 238, 0.2);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px -12px rgba(67, 97, 238, 0.5);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .auth-footer-links {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1.8rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .footer-link {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease, background 0.2s ease;
+        padding: 6px 8px;
+        border-radius: 40px;
+        background: transparent;
+    }
+
+    .footer-link i {
+        font-size: 0.8rem;
+    }
+
+    .footer-link:hover {
+        color: var(--primary);
+        background: var(--bg-tertiary);
+    }
+
+    .help-card {
+        text-align: center;
+    }
+
+    .help-icon {
+        font-size: 3rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+
+    .help-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+    }
+
+    .recover-email-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--bg-secondary);
+        padding: 12px 24px;
+        border-radius: 60px;
+        font-weight: 600;
+        color: var(--primary);
+        text-decoration: none;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s ease;
+        margin-top: 20px;
+        box-shadow: 0 1px 2px var(--shadow);
+    }
+
+    .recover-email-btn i {
+        font-size: 1.1rem;
+    }
+
+    .recover-email-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        transform: translateY(-3px);
+    }
+
+    .help-note {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 24px;
+    }
+
+    @media (max-width: 780px) {
+        .login-wrapper {
+            flex-direction: column;
+            border-radius: 32px;
+        }
+        .help-section {
+            border-left: none;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .auth-footer-links {
+            justify-content: center;
+            gap: 1.8rem;
+        }
+    }
+
+    @media (max-width: 550px) {
+        .login-form-section {
+            padding: 1.8rem;
+        }
+        .help-section {
+            padding: 1.8rem;
+        }
+        .captcha-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .captcha-image {
+            width: 100%;
+            height: 60px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .captcha-image {
+            width: 100%;
+            height: 60px;
+        }
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .remember-me {
+        margin: 10px 0 5px;
+    }
+
+    .notification-toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-secondary);
+        backdrop-filter: blur(8px);
+        border-radius: 60px;
+        padding: 12px 24px;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+        border-left: 5px solid var(--primary);
+        z-index: 1000;
+        font-weight: 500;
+        color: var(--text-primary);
+        max-width: 90%;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="login-form-section">
+        <div class="auth-header">
+            <div class="icon-circle">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h1>
+                {% if role[0] == 'Admins' %}
+                    管理员登录
+                {% elif role[0] == 'SuperAdmins' %}
+                    超级管理员登录
+                {% elif role[0] == 'Owners' %}
+                    所有者登录
+                {% else %}
+                    用户登录
+                {% endif %}
+            </h1>
+            {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+            <div class="role-badge 
+                {% if role[0] == 'Admins' %}admin
+                {% elif role[0] == 'SuperAdmins' %}superadmin
+                {% elif role[0] == 'Owners' %}owner
+                {% endif %}">
+                <i class="fas 
+                    {% if role[0] == 'Admins' %}fa-user-shield
+                    {% elif role[0] == 'SuperAdmins' %}fa-crown
+                    {% elif role[0] == 'Owners' %}fa-gem
+                    {% endif %}"></i>
+                <span>
+                    {% if role[0] == 'Admins' %}管理员
+                    {% elif role[0] == 'SuperAdmins' %}超级管理员
+                    {% elif role[0] == 'Owners' %}所有者
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+
+        <form id="loginForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            
+            <div class="form-group">
+                <input type="text" class="input-field" id="account" name="account" placeholder=" " autocomplete="off" required>
+                <label for="account" class="input-label">
+                    <i class="fas fa-user"></i> 
+                    {% if role[0] == 'Owners' %}
+                        昵称
+                    {% else %}
+                        昵称或邮箱
+                    {% endif %}
+                </label>
+                <div class="error-message" id="account-error">
+                    {% if role[0] == 'Owners' %}请输入昵称{% else %}请输入昵称或邮箱{% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input type="password" class="input-field" id="password" name="password" placeholder=" " required>
+                <label for="password" class="input-label">
+                    <i class="fas fa-lock"></i> 密码
+                </label>
+                <button type="button" class="password-toggle" id="togglePassword">
+                    <i class="fas fa-eye-slash"></i>
+                </button>
+                <div class="error-message" id="password-error">
+                    密码必须包含大小写字母和数字，长度8-30个字符
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="captcha-group">
+                    <div class="captcha-input">
+                        <input type="text" class="input-field" id="captcha" name="captcha" placeholder=" " maxlength="6" autocomplete="off" required>
+                        <label for="captcha" class="input-label">
+                            <i class="fas fa-shield-alt"></i> 验证码
+                        </label>
+                    </div>
+                    <div class="captcha-image" id="refreshCaptchaBtn">
+                        <img src="/captcha" name="captcha" alt="验证码">
+                    </div>
+                </div>
+                <div class="error-message" id="captcha-error">
+                    请输入正确的验证码
+                </div>
+            </div>
+
+            <div class="form-group remember-me">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="remember" style="width: 16px; height: 16px; cursor: pointer;">
+                    <span style="color: var(--text-secondary); font-size: 0.85rem;">记住我</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn-primary" id="submitBtn">
+                <i class="fas fa-sign-in-alt"></i> 登录
+            </button>
+
+            <div class="auth-footer-links">
+                {% if role[0] == 'Users' %}
+                    <a href="/{{ basic_url }}/forgot-password" class="footer-link"><i class="fas fa-question-circle"></i> 忘记密码?</a>
+                    <a href="/{{ basic_url }}/register" class="footer-link"><i class="fas fa-user-plus"></i> 创建账户</a>
+                {% elif role[0] == 'Admins' %}
+                    <a href="/admin/forgot-password" class="footer-link"><i class="fas fa-question-circle"></i> 忘记密码?</a>
+                    <a href="/admin/register" class="footer-link"><i class="fas fa-ticket-alt"></i> 管理员注册</a>
+                {% elif role[0] == 'SuperAdmins' %}
+                    <a href="{{ url_for('superadmin.forgot_password') }}" class="footer-link"><i class="fas fa-question-circle"></i> 忘记密码?</a>
+                    <a href="{{ url_for('superadmin.register') }}" class="footer-link"><i class="fas fa-ticket-alt"></i> 超级管理员注册</a>
+                {% elif role[0] == 'Owners' %}
+                    <a href="{{ url_for('owner.forgot_password') }}" class="footer-link"><i class="fas fa-question-circle"></i> 忘记密码?</a>
+                    <a href="{{ url_for('owner.register') }}" class="footer-link"><i class="fas fa-ticket-alt"></i> 所有者注册</a>
+                {% else %}
+                    <a href="#" class="footer-link"><i class="fas fa-question-circle"></i> 忘记密码?</a>
+                    <a href="#" class="footer-link"><i class="fas fa-user-plus"></i> 创建账户</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="help-section">
+        <div class="help-card">
+            <div class="help-icon">
+                <i class="fas fa-envelope-open-text"></i>
+            </div>
+            <div class="help-title">
+                无法登录您的账户？
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+                如果您使用的是临时邮箱或无法收到验证邮件
+            </p>
+            <a href="{{ url_for('user.account_recover_page') }}" class="recover-email-btn">
+                <i class="fas fa-magic"></i> 假邮箱无法登录？点此找回
+            </a>
+            <div class="help-note">
+                <i class="fas fa-shield-alt"></i> 我们将协助您验证身份并恢复访问
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script nonce="{{ request.nonce }}">
+    (function() {
+        const loginForm = document.getElementById('loginForm');
+        const accountInput = document.getElementById('account');
+        const passwordInput = document.getElementById('password');
+        const captchaInput = document.getElementById('captcha');
+        const togglePassword = document.getElementById('togglePassword');
+        const refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
+        const accountError = document.getElementById('account-error');
+        const passwordError = document.getElementById('password-error');
+        const captchaError = document.getElementById('captcha-error');
+        const submitBtn = document.getElementById('submitBtn');
+        const userRole = '{{ role[0] }}';
+        
+        let currentSalt = '';
+        let currentIterations = 0;
+        
+        function showNotification(message, type = 'info') {
+            if (typeof window.showNotification === 'function') {
+                window.showNotification(message, type);
+            } else {
+                const toast = document.createElement('div');
+                toast.className = 'notification-toast';
+                let bgColor = '#4361ee';
+                if(type === 'error') bgColor = '#e63946';
+                if(type === 'warning') bgColor = '#f39c12';
+                if(type === 'success') bgColor = '#2ecc71';
+                toast.style.borderLeftColor = bgColor;
+                toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i> ${message}`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3500);
+            }
+        }
+
+        function refreshCaptcha() {
+            const img = document.querySelector('img[name="captcha"]');
+            if (img) {
+                img.src = '/captcha?' + new Date().getTime();
+            }
+            if (captchaInput) captchaInput.value = '';
+        }
+        
+        if (refreshCaptchaBtn) {
+            refreshCaptchaBtn.addEventListener('click', refreshCaptcha);
+        }
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', () => {
+                const type = passwordInput.type === 'password' ? 'text' : 'password';
+                passwordInput.type = type;
+                togglePassword.innerHTML = type === 'password' ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+            });
+        }
+
+        async function fetchTemporaryPBKDF2Params() {
+            try {
+                let apiUrl = '';
+                if (userRole === 'Admins') apiUrl = '/admin/api/pbkdf2-salt';
+                else if (userRole === 'SuperAdmins') apiUrl = `{{ url_for('superadmin.get_superadmin_pbkdf2_salt') }}`;
+                else if (userRole === 'Owners') apiUrl = `{{ url_for('owner.get_owner_pbkdf2_salt') }}`;
+                else apiUrl = '/user/api/pbkdf2-salt';
+                const resp = await fetch(apiUrl);
+                const data = await resp.json();
+                if (data.success) {
+                    currentSalt = data.salt;
+                    currentIterations = data.iterations;
+                }
+            } catch(e) {
+                console.warn('临时参数获取失败', e);
+            }
+        }
+
+        async function fetchUserSpecificPBKDF2Params(account) {
+            if (!account) return;
+            try {
+                let apiUrl = '';
+                if (userRole === 'Admins') apiUrl = `/admin/api/admin-pbkdf2-params?account=${encodeURIComponent(account)}`;
+                else if (userRole === 'SuperAdmins') apiUrl = `{{ url_for('superadmin.get_superadmin_specific_pbkdf2_params') }}?account=${encodeURIComponent(account)}`;
+                else if (userRole === 'Owners') apiUrl = `{{ url_for('owner.get_owner_specific_pbkdf2_params') }}?account=${encodeURIComponent(account)}`;
+                else apiUrl = `/user/api/user-pbkdf2-params?account=${encodeURIComponent(account)}`;
+                const resp = await fetch(apiUrl);
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                if (data.success) {
+                    currentSalt = data.salt;
+                    currentIterations = data.iterations;
+                } else {
+                    await fetchTemporaryPBKDF2Params();
+                }
+            } catch(e) {
+                await fetchTemporaryPBKDF2Params();
+            }
+        }
+
+        if (accountInput) {
+            accountInput.addEventListener('input', function() {
+                const val = this.value.trim();
+                if (val.length === 0) return;
+                clearTimeout(this._timer);
+                this._timer = setTimeout(async () => {
+                    if (val.length >= 3) await fetchUserSpecificPBKDF2Params(val);
+                    else await fetchTemporaryPBKDF2Params();
+                }, 500);
+            });
+        }
+
+        if (passwordInput) {
+            passwordInput.addEventListener('input', function() {
+                const pwd = this.value;
+                const hasUpper = /[A-Z]/.test(pwd);
+                const hasLower = /[a-z]/.test(pwd);
+                const hasNumber = /[0-9]/.test(pwd);
+                const lenOk = pwd.length >= 8 && pwd.length <= 30;
+                const valid = lenOk && hasUpper && hasLower && hasNumber;
+                if (pwd.length === 0) passwordError.style.display = 'none';
+                else if (!valid) passwordError.style.display = 'block';
+                else passwordError.style.display = 'none';
+            });
+        }
+
+        async function pbkdf2Hash(password, salt, iterations) {
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), {name: 'PBKDF2'}, false, ['deriveBits']);
+            const derived = await crypto.subtle.deriveBits({
+                name: 'PBKDF2', salt: enc.encode(salt), iterations, hash: 'SHA-256'
+            }, keyMaterial, 256);
+            const hashArray = Array.from(new Uint8Array(derived));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const account = accountInput.value.trim();
+                const password = passwordInput.value;
+                const captcha = captchaInput.value;
+                const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+                
+                let hasError = false;
+                if (!account) {
+                    if (accountError) accountError.style.display = 'block';
+                    hasError = true;
+                } else if (accountError) {
+                    accountError.style.display = 'none';
+                }
+                
+                const pwdValid = /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && password.length >= 8 && password.length <= 30;
+                if (!pwdValid && password.length > 0) {
+                    if (passwordError) passwordError.style.display = 'block';
+                    hasError = true;
+                } else if (passwordError) {
+                    passwordError.style.display = 'none';
+                }
+                
+                if (!captcha) {
+                    if (captchaError) captchaError.style.display = 'block';
+                    hasError = true;
+                } else if (captchaError) {
+                    captchaError.style.display = 'none';
+                }
+                
+                if (hasError) return;
+                
+                if (!currentSalt) {
+                    showNotification('安全参数加载中，请稍后再试', 'warning');
+                    await fetchUserSpecificPBKDF2Params(account);
+                    if (!currentSalt) return;
+                }
+                
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="loading-spinner"></span> 登录中...';
+                
+                try {
+                    const hashedPassword = await pbkdf2Hash(password, currentSalt, currentIterations);
+                    const formData = new FormData();
+                    formData.append('account', account);
+                    formData.append('password', hashedPassword);
+                    formData.append('salt', currentSalt);
+                    formData.append('iterations', currentIterations.toString());
+                    formData.append('captcha', captcha);
+                    formData.append('csrf_token', csrfToken);
+                    
+                    const resp = await fetch(window.location.href, { method: 'POST', body: formData });
+                    const data = await resp.json();
+                    
+                    if (data.success === '登录成功') {
+                        showNotification(data.success, 'success');
+                        let redirect = '/';
+                        if (userRole === 'Admins') redirect = '/admin/dashboard';
+                        else if (userRole === 'SuperAdmins') redirect = `{{ url_for('superadmin.dashboard') }}`;
+                        else if (userRole === 'Owners') redirect = `{{ url_for('owner.dashboard') }}`;
+                        else redirect = '/';
+                        window.location.href = redirect;
+                    } else if (data.warning) {
+                        showNotification(data.warning, 'warning');
+                        let redirect = '/';
+                        if (userRole === 'Admins') redirect = '/admin/dashboard';
+                        else if (userRole === 'SuperAdmins') redirect = `{{ url_for('superadmin.dashboard') }}`;
+                        else if (userRole === 'Owners') redirect = `{{ url_for('owner.dashboard') }}`;
+                        else redirect = '/';
+                        window.location.href = redirect;
+                    } else {
+                        showNotification(data.error || '登录失败，请重试', 'error');
+                        refreshCaptcha();
+                        await fetchUserSpecificPBKDF2Params(account);
+                    }
+                } catch(err) {
+                    console.error(err);
+                    showNotification('网络异常，请检查连接', 'error');
+                    refreshCaptcha();
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> 登录';
+                }
+            });
+        }
+
+        const rememberChk = document.getElementById('remember');
+        if (rememberChk) {
+            rememberChk.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    console.log('记住我已勾选');
+                    document.cookie = "remember_me=true; path=/; max-age=2592000";
+                } else {
+                    document.cookie = "remember_me=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                }
+            });
+        }
+
+        fetchTemporaryPBKDF2Params();
+        if (refreshCaptchaBtn) refreshCaptchaBtn.addEventListener('click', refreshCaptcha);
+    })();
+</script>
+{% endblock %}

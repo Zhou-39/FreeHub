@@ -1,0 +1,119 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}首页{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+    <h1>欢迎回来, {{ role[1].nickname if role[1] else '游客' }}!</h1>
+    
+    {% if role[1] %}
+    <div class="user-info">
+        <h2>用户信息</h2>
+        <p><strong>昵称:</strong> {{ role[1].nickname }}</p>
+        <p><strong>邮箱:</strong> {{ role[1].email }}</p>
+        {% if role[1].email_verified %}
+            <p><span class="badge verified"><i class="fas fa-check-circle"></i> 邮箱已验证</span></p>
+        {% else %}
+            <p><span class="badge unverified"><i class="fas fa-exclamation-circle"></i> 邮箱未验证</span></p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if uids %}
+    <div class="uids-section">
+        <h2>关联UID</h2>
+        <div class="uid-list">
+            {% for uid in uids %}
+            <div class="uid-item">
+                <div class="uid-info">
+                    <span class="uid-label">UID:</span>
+                    <span class="uid-value">{{ uid.uid }}</span>
+                </div>
+                <div class="uid-info">
+                    <span class="uid-label">昵称:</span>
+                    <span class="uid-value">{{ uid.nickname }}</span>
+                </div>
+                <div class="uid-info">
+                    <span class="uid-label">等级:</span>
+                    <span class="uid-value">{{ uid.level }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style nonce="{{ request.nonce }}">
+.welcome-section {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.user-info {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    border: 1px solid var(--border-color);
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.badge.verified {
+    background-color: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.badge.unverified {
+    background-color: rgba(248, 113, 113, 0.2);
+    color: var(--danger);
+}
+
+.uids-section {
+    margin-top: 30px;
+}
+
+.uid-list {
+    display: grid;
+    gap: 15px;
+}
+
+.uid-item {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+}
+
+.uid-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.uid-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.uid-value {
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .uid-item {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

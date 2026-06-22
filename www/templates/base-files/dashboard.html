@@ -1,0 +1,496 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}仪表盘 - {{ role[0] }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="page-header">
+        <h1><i class="fas fa-tachometer-alt"></i> 管理仪表盘</h1>
+        <p>欢迎回来，{{ role[1].nickname if role[1] else '管理员' }}</p>
+        <div class="identity-badge">
+            {% if role[0] == 'Admins' %}
+            <i class="fas fa-user-shield"></i> 普通管理员
+            {% elif role[0] == 'SuperAdmins' %}
+            <i class="fas fa-crown"></i> 超级管理员
+            {% elif role[0] == 'Owners' %}
+            <i class="fas fa-gem"></i> 网站所有者
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 统计数据卡片 -->
+    <div class="stats-grid">
+        <!-- 用户统计 -->
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.users.total }}</div>
+                <div class="stat-label">总用户数</div>
+            </div>
+            <div class="stat-trend">
+                <span class="trend-up"><i class="fas fa-arrow-up"></i> {{ stats.users.active_24h }} 今日活跃</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-user-secret"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.users.total_uids }}</div>
+                <div class="stat-label">总UID数</div>
+            </div>
+            <div class="stat-trend">
+                <span>平均 {{ stats.users.uids_per_user }} 个/用户</span>
+            </div>
+        </div>
+
+        <!-- 管理员统计（仅超级管理员和Owner可见） -->
+        {% if role[0] in ['SuperAdmins', 'Owners'] %}
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.admins.total }}</div>
+                <div class="stat-label">管理员数</div>
+            </div>
+            <div class="stat-trend">
+                <span class="trend-{% if stats.admins.user_admin_ratio_ok %}up{% else %}down{% endif %}">
+                    <i class="fas fa-balance-scale"></i> 比例: 1:{{ (stats.users.total / stats.admins.total)|round(1) if stats.admins.total > 0 else '∞' }}
+                </span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 超级管理员统计（仅Owner可见） -->
+        {% if role[0] == 'Owners' %}
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.superadmins.total if stats.superadmins else 0 }}</div>
+                <div class="stat-label">超级管理员</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 内容统计 -->
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.content.posts }}</div>
+                <div class="stat-label">帖子数</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.content.articles }}</div>
+                <div class="stat-label">文章数</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.content.uploads }}</div>
+                <div class="stat-label">文件数</div>
+            </div>
+            <div class="stat-trend">
+                <span>{{ (stats.content.total_size / (1024*1024*1024))|round(2) }} GB</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态警告 -->
+    {% if role[0] == 'Admins' %}
+    <div class="alert-grid">
+        {% if stats.admins.invite_code_required %}
+        <div class="alert-card warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="alert-content">
+                <h3>邀请码制已启用</h3>
+                <p>当前管理员数量已达到300人，新管理员需要通过邀请码注册</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not stats.admins.user_admin_ratio_ok %}
+        <div class="alert-card danger">
+            <i class="fas fa-exclamation-circle"></i>
+            <div class="alert-content">
+                <h3>管理员比例异常</h3>
+                <p>管理员与用户比例应为1:2，当前为 1:{{ (stats.users.total / stats.admins.total)|round(1) }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 快速操作 -->
+    <div class="quick-actions">
+        <h2><i class="fas fa-bolt"></i> 快速操作</h2>
+        <div class="actions-grid">
+            <a href="/admin/uids" class="action-card">
+                <i class="fas fa-user-secret"></i>
+                <span>管理UID</span>
+            </a>
+            <a href="/admin/posts" class="action-card">
+                <i class="fas fa-file-alt"></i>
+                <span>管理帖子</span>
+            </a>
+            <a href="/admin/articles" class="action-card">
+                <i class="fas fa-book"></i>
+                <span>管理文章</span>
+            </a>
+            <a href="/admin/uploads" class="action-card">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>管理文件</span>
+            </a>
+            <a href="/admin/comments" class="action-card">
+                <i class="fas fa-comments"></i>
+                <span>管理评论</span>
+            </a>
+            <a href="/admin/announcements" class="action-card">
+                <i class="fas fa-bullhorn"></i>
+                <span>发布公告</span>
+            </a>
+
+            <!-- 超级管理员和Owner的额外操作 -->
+            {% if role[0] in ['SuperAdmins', 'Owners'] %}
+            <a href="/admin/manage-admins" class="action-card super">
+                <i class="fas fa-user-cog"></i>
+                <span>管理管理员</span>
+            </a>
+            <a href="/admin/logs" class="action-card super">
+                <i class="fas fa-history"></i>
+                <span>查看日志</span>
+            </a>
+            {% endif %}
+
+            <!-- Owner的额外操作 -->
+            {% if role[0] == 'Owners' %}
+            <a href="/owner/invite-codes" class="action-card owner">
+                <i class="fas fa-ticket-alt"></i>
+                <span>邀请码管理</span>
+            </a>
+            <a href="/owner/users" class="action-card owner">
+                <i class="fas fa-users-cog"></i>
+                <span>用户管理</span>
+            </a>
+            <a href="/owner/settings" class="action-card owner">
+                <i class="fas fa-cogs"></i>
+                <span>系统设置</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 最近活动 -->
+    <div class="recent-activity">
+        <h2><i class="fas fa-history"></i> 最近活动</h2>
+        <div class="activity-list">
+            {% for activity in recent_activities %}
+            <div class="activity-item">
+                <div class="activity-icon" style="background: var(--{{ activity.color }});">
+                    <i class="fas fa-{{ activity.icon }}"></i>
+                </div>
+                <div class="activity-content">
+                    <p>{{ activity.content }}</p>
+                    <small>{{ activity.time.strftime('%Y-%m-%d %H:%M') }}</small>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <p>暂无活动记录</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.identity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    margin-top: 10px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 20px var(--shadow);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.stat-trend {
+    font-size: 0.85rem;
+    margin-top: auto;
+}
+
+.trend-up {
+    color: var(--success);
+}
+
+.trend-down {
+    color: var(--danger);
+}
+
+.alert-grid {
+    display: grid;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.alert-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    border-left: 4px solid;
+}
+
+.alert-card.warning {
+    border-left-color: var(--warning);
+    background: rgba(250, 204, 21, 0.1);
+}
+
+.alert-card.danger {
+    border-left-color: var(--danger);
+    background: rgba(248, 113, 113, 0.1);
+}
+
+.alert-card i {
+    font-size: 1.5rem;
+}
+
+.alert-card.warning i {
+    color: var(--warning);
+}
+
+.alert-card.danger i {
+    color: var(--danger);
+}
+
+.alert-content h3 {
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+}
+
+.alert-content p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.quick-actions {
+    margin-bottom: 40px;
+}
+
+.quick-actions h2 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.action-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px var(--shadow);
+    background: var(--primary);
+    color: white;
+}
+
+.action-card i {
+    font-size: 2rem;
+}
+
+.action-card.super:hover {
+    background: var(--warning);
+}
+
+.action-card.owner:hover {
+    background: var(--danger);
+}
+
+.recent-activity h2 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.activity-list {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-content p {
+    color: var(--text-primary);
+    margin-bottom: 3px;
+}
+
+.activity-content small {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+{% endblock %}

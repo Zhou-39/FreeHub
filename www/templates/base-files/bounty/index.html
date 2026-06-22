@@ -1,0 +1,766 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}悬赏市场 - FreeHub{% endblock %}
+
+{% block content %}
+<div class="bounty-container" id="bountyMarketApp">
+    <!-- 头部 -->
+    <div class="page-header">
+        <h1><i class="fas fa-gavel"></i> 悬赏市场</h1>
+        <p>发布悬赏，寻找开发者；上传作品，赚取积分</p>
+        <div class="header-actions">
+            <a href="{{ url_for('user.bounty_create_page') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> 发布悬赏
+            </a>
+            <a href="{{ url_for('user.bounty_my_page') }}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> 我的悬赏
+            </a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('user.bounty_my_uploads_page') }}" class="btn btn-secondary">
+                <i class="fas fa-upload"></i> 我的投稿
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label><i class="fas fa-filter"></i> 状态：</label>
+            <select id="filterStatus" class="filter-select">
+                <option value="open">进行中</option>
+                <option value="closed">已完成</option>
+                <option value="expired">已过期</option>
+                <option value="all">全部</option>
+            </select>
+            
+            <select id="filterSort" class="filter-select">
+                <option value="latest">最新发布</option>
+                <option value="hot">赏金最高</option>
+                <option value="deadline">即将截止</option>
+            </select>
+        </div>
+        
+        <div class="search-group">
+            <input type="text" id="searchInput" placeholder="搜索悬赏...">
+            <button class="btn-search" id="searchBtn">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-cards" id="statsCards" style="display:none;">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">总悬赏</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--success);"><i class="fas fa-play-circle"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="statOpen">0</div>
+                <div class="stat-label">进行中</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--warning);"><i class="fas fa-coins"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="statPoints">0</div>
+                <div class="stat-label">总赏金池</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 悬赏列表 -->
+    <div class="bounty-grid" id="bountyGrid"></div>
+
+    <!-- 空状态 -->
+    <div id="emptyState" class="empty-state" style="display:none;">
+        <i class="fas fa-gavel"></i>
+        <h3>暂无悬赏</h3>
+        <p>还没有人发布悬赏，来发布第一个吧！</p>
+        <a href="{{ url_for('user.bounty_create_page') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> 发布悬赏
+        </a>
+    </div>
+
+    <!-- 加载中 -->
+    <div id="loadingSpinner" class="loading-spinner" style="display:none;">
+        <i class="fas fa-spinner fa-spin"></i> 加载中...
+    </div>
+
+    <!-- 分页 -->
+    <div class="pagination" id="pagination" style="display:none;"></div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+/* 样式与之前完全相同，省略重复 */
+.bounty-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    background: var(--bg-secondary);
+    padding: 15px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 8px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-width: 120px;
+    cursor: pointer;
+}
+
+.search-group {
+    display: flex;
+    gap: 10px;
+}
+
+.search-group input {
+    padding: 8px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    width: 250px;
+}
+
+.search-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.btn-search {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-search:hover {
+    transform: scale(1.05);
+}
+
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 20px var(--shadow);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.bounty-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.bounty-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.bounty-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px var(--shadow);
+}
+
+.bounty-card.expired {
+    opacity: 0.7;
+}
+
+.bounty-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.status-badge.success {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--info);
+}
+
+.status-badge.expired {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--danger);
+}
+
+.bounty-bounty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(250, 204, 21, 0.15);
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.bounty-bounty i {
+    color: var(--warning);
+    font-size: 0.8rem;
+}
+
+.bounty-amount {
+    font-weight: 700;
+    color: var(--warning);
+    font-size: 1.1rem;
+}
+
+.bounty-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.bounty-title a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.bounty-title a:hover {
+    color: var(--primary);
+}
+
+.bounty-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.bounty-meta {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.meta-item i {
+    color: var(--primary);
+}
+
+.bounty-pools {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 10px;
+}
+
+.pool-item {
+    flex: 1;
+    text-align: center;
+}
+
+.pool-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.pool-value {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.pool-value.static {
+    color: var(--success);
+}
+
+.pool-value.dynamic {
+    color: var(--info);
+}
+
+.btn-view {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin-top: auto;
+}
+
+.btn-view:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    border: 2px dashed var(--border-color);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 25px;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+.loading-spinner i {
+    margin-right: 8px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 30px;
+}
+
+.page-link {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.page-link:hover {
+    background: var(--bg-secondary);
+    transform: translateY(-2px);
+}
+
+.page-link.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.page-link:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+@media (max-width: 768px) {
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-group {
+        justify-content: space-between;
+    }
+    
+    .filter-select {
+        flex: 1;
+    }
+    
+    .search-group {
+        width: 100%;
+    }
+    
+    .search-group input {
+        flex: 1;
+    }
+    
+    .stats-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .bounty-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+    }
+    
+    .header-actions .btn {
+        justify-content: center;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+(function() {
+    'use strict';
+
+    let currentPage = 1;
+    let totalPages = 1;
+    let isLoading = false;
+
+    const grid = document.getElementById('bountyGrid');
+    const emptyState = document.getElementById('emptyState');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const pagination = document.getElementById('pagination');
+    const statsCards = document.getElementById('statsCards');
+    const statTotal = document.getElementById('statTotal');
+    const statOpen = document.getElementById('statOpen');
+    const statPoints = document.getElementById('statPoints');
+
+    const filterStatus = document.getElementById('filterStatus');
+    const filterSort = document.getElementById('filterSort');
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+
+    // ===== 加载列表 =====
+    async function loadList(page) {
+        if (isLoading) return;
+        isLoading = true;
+        loadingSpinner.style.display = 'block';
+        grid.innerHTML = '';
+
+        try {
+            const params = new URLSearchParams({
+                page: page || currentPage,
+                per_page: 12,
+                status: filterStatus.value,
+                sort: filterSort.value,
+                search: searchInput.value.trim()
+            });
+
+            const resp = await fetch(`/user/api/bounty/list?${params}`);
+            const data = await resp.json();
+
+            if (data.success) {
+                renderTasks(data.data);
+                totalPages = data.total_pages || 1;
+                currentPage = data.page || 1;
+                renderPagination();
+                updateStats(data.data);
+            } else {
+                alert(data.error || '加载失败');
+            }
+        } catch (e) {
+            console.error('加载失败', e);
+            grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);">加载失败，请刷新重试</div>';
+        } finally {
+            isLoading = false;
+            loadingSpinner.style.display = 'none';
+        }
+    }
+
+    // ===== 渲染任务 =====
+    function renderTasks(tasks) {
+        if (!tasks || tasks.length === 0) {
+            grid.innerHTML = '';
+            emptyState.style.display = 'block';
+            statsCards.style.display = 'none';
+            return;
+        }
+        emptyState.style.display = 'none';
+        statsCards.style.display = 'grid';
+
+        let html = '';
+        for (const task of tasks) {
+            const statusMap = {
+                'open': { class: 'active', text: '进行中' },
+                'closed': { class: 'success', text: '已完成' },
+                'expired': { class: 'expired', text: '已过期' }
+            };
+            const s = statusMap[task.status] || statusMap['open'];
+            const expiredClass = task.status === 'expired' ? 'expired' : '';
+
+            html += `
+                <div class="bounty-card ${expiredClass}">
+                    <div class="bounty-header">
+                        <div class="bounty-status">
+                            <span class="status-badge ${s.class}">${s.text}</span>
+                        </div>
+                        <div class="bounty-bounty">
+                            <i class="fas fa-coins"></i>
+                            <span class="bounty-amount">${task.total_points}</span>
+                        </div>
+                    </div>
+                    <h3 class="bounty-title">
+                        <a href="/user/bounty/detail/${task.id}">${escapeHtml(task.title)}</a>
+                    </h3>
+                    <p class="bounty-desc">${escapeHtml(task.description)}</p>
+                    <div class="bounty-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-user-secret"></i>
+                            <span>${escapeHtml(task.publisher?.nickname || '已注销')}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>${task.upload_count} / ${task.max_uploaders || '不限'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${task.created_at}</span>
+                        </div>
+                    </div>
+                    <div class="bounty-pools">
+                        <div class="pool-item">
+                            <span class="pool-label">静态池</span>
+                            <span class="pool-value static">${task.static_pool}</span>
+                        </div>
+                        <div class="pool-item">
+                            <span class="pool-label">动态池</span>
+                            <span class="pool-value dynamic">${task.dynamic_pool}</span>
+                        </div>
+                    </div>
+                    <a href="/user/bounty/detail/${task.id}" class="btn-view">
+                        查看详情 <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            `;
+        }
+        grid.innerHTML = html;
+    }
+
+    // ===== 更新统计 =====
+    function updateStats(tasks) {
+        if (!tasks || tasks.length === 0) {
+            statsCards.style.display = 'none';
+            return;
+        }
+        statsCards.style.display = 'grid';
+        statTotal.textContent = tasks.length;
+        statOpen.textContent = tasks.filter(t => t.status === 'open').length;
+        statPoints.textContent = tasks.reduce((sum, t) => sum + (t.total_points || 0), 0);
+    }
+
+    // ===== 渲染分页 =====
+    function renderPagination() {
+        if (totalPages <= 1) {
+            pagination.style.display = 'none';
+            return;
+        }
+        pagination.style.display = 'flex';
+
+        let html = '';
+        html += `<button class="page-link" ${currentPage <= 1 ? 'disabled' : ''} onclick="window.__bountyMarket.goToPage(${currentPage - 1})">
+            <i class="fas fa-chevron-left"></i>
+        </button>`;
+
+        const start = Math.max(1, currentPage - 2);
+        const end = Math.min(totalPages, currentPage + 2);
+        for (let i = start; i <= end; i++) {
+            html += `<button class="page-link ${i === currentPage ? 'active' : ''}" onclick="window.__bountyMarket.goToPage(${i})">${i}</button>`;
+        }
+
+        html += `<button class="page-link" ${currentPage >= totalPages ? 'disabled' : ''} onclick="window.__bountyMarket.goToPage(${currentPage + 1})">
+            <i class="fas fa-chevron-right"></i>
+        </button>`;
+        pagination.innerHTML = html;
+    }
+
+    // ===== 工具 =====
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ===== 事件绑定 =====
+    filterStatus.addEventListener('change', function() { currentPage = 1; loadList(); });
+    filterSort.addEventListener('change', function() { currentPage = 1; loadList(); });
+    searchBtn.addEventListener('click', function() { currentPage = 1; loadList(); });
+    searchInput.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') { currentPage = 1; loadList(); }
+    });
+
+    // ===== 暴露到全局 =====
+    window.__bountyMarket = {
+        goToPage: function(page) {
+            if (page >= 1 && page <= totalPages && page !== currentPage) {
+                currentPage = page;
+                loadList(page);
+            }
+        },
+        reload: function() { loadList(currentPage); }
+    };
+
+    // ===== 初始化 =====
+    loadList(1);
+
+})();
+</script>
+{% endblock %}

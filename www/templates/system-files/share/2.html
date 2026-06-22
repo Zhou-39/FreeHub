@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>化学实验·随机顺序挑战 | 动态通气顺序判断</title>
+    <!-- Google Font & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style nonce="{{ request.nonce }}">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #eef2f7 0%, #dce5ef 100%);
+            font-family: 'Inter', sans-serif;
+            padding: 2rem 1.5rem;
+            color: #1e2f3e;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部区域 */
+        .hero {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .hero h1 {
+            font-size: 2.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1b4d3e, #2b7a4b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.3px;
+        }
+        .hero h1 i {
+            background: none;
+            color: #2b7a4b;
+        }
+        .hero p {
+            color: #2c5368;
+            max-width: 720px;
+            margin: 0.75rem auto 0;
+            background: rgba(255,255,245,0.7);
+            backdrop-filter: blur(3px);
+            padding: 0.5rem 1.2rem;
+            border-radius: 60px;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .random-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #2c3e4e;
+            color: #f0f3f8;
+            padding: 0.3rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 1rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .random-badge i {
+            font-size: 0.8rem;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1.5rem;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .btn-outline {
+            background: rgba(255,255,245,0.8);
+            border: 1px solid #b9cddf;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #1f4e3c;
+            font-family: 'Inter', monospace;
+            backdrop-filter: blur(4px);
+        }
+        .btn-outline:hover {
+            background: #2c7a4d;
+            color: white;
+            border-color: #2c7a4d;
+            transform: translateY(-2px);
+        }
+        /* 卡片网格 */
+        .experiment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.8rem;
+            margin: 1rem 0 2rem;
+        }
+        .exp-card {
+            background: #ffffff;
+            border-radius: 2rem;
+            box-shadow: 0 20px 32px -14px rgba(0, 0, 0, 0.12);
+            transition: all 0.25s;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.6);
+            overflow: hidden;
+        }
+        .exp-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 28px 38px -16px rgba(0,32,32,0.2);
+        }
+        .card-header {
+            background: #f9fbfd;
+            padding: 1.2rem 1.5rem;
+            border-bottom: 2px solid #e7edf3;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .exp-icon {
+            width: 44px;
+            height: 44px;
+            background: #e5f3e9;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: #2b6e46;
+        }
+        .exp-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #1d3e53;
+        }
+        .exp-desc {
+            padding: 1rem 1.5rem 0.5rem;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            color: #2c4b62;
+            border-bottom: 1px dashed #dee9f0;
+        }
+        .question-box {
+            background: #fef7e0;
+            margin: 0.9rem 1.2rem;
+            padding: 0.8rem 1rem;
+            border-radius: 20px;
+            border-left: 5px solid #f4a261;
+            font-weight: 500;
+            color: #9b6a2c;
+            font-size: 0.9rem;
+        }
+        .question-box i {
+            margin-right: 8px;
+            color: #e76f51;
+        }
+        .choice-area {
+            padding: 0.5rem 1.5rem 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .btn-group {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .btn-option {
+            background: #f1f5f9;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: 'Inter', monospace;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .btn-option.opt-first {
+            background: #e0f2e9;
+            color: #1f6e5a;
+            border: 1px solid #bddad0;
+        }
+        .btn-option.opt-second {
+            background: #ffe6e2;
+            color: #b13b28;
+            border: 1px solid #fbc4bb;
+        }
+        .btn-option:hover {
+            transform: scale(0.96);
+            filter: brightness(0.96);
+        }
+        .reset-icon {
+            cursor: pointer;
+            color: #7c8f9c;
+            background: #f0f4f9;
+            padding: 0.4rem 0.8rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            transition: 0.1s;
+        }
+        .reset-icon i {
+            margin-right: 5px;
+        }
+        .reset-icon:hover {
+            background: #e2e8f0;
+            color: #e67e22;
+        }
+        .feedback {
+            margin: 0 1.5rem 1.5rem 1.5rem;
+            padding: 0.7rem 1rem;
+            border-radius: 28px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .feedback.correct {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .feedback.wrong {
+            background: #ffe4e2;
+            color: #b91c1c;
+        }
+        .feedback.neutral {
+            background: #f2f5f9;
+            color: #4b5e77;
+        }
+        .footnote {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.78rem;
+            color: #5e7188;
+            border-top: 1px solid #cbdae9;
+            padding-top: 1.6rem;
+        }
+        @media (max-width: 700px) {
+            body { padding: 1rem; }
+            .choice-area { flex-direction: column; align-items: stretch; }
+            .btn-group { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>
+            <i class="fas fa-dice-d6"></i> 
+            随机顺序 · 通气挑战
+        </h1>
+        <p>每次访问/刷新，题目顺序随机 & 每个实验的选项顺序随机<br>像侯德榜一样精准推理，不被固定顺序干扰</p>
+        <div class="random-badge">
+            <i class="fas fa-random"></i> 动态洗牌模式 · 强化思维适应力
+        </div>
+    </div>
+    <div class="toolbar">
+        <button class="btn-outline" id="refreshOrderBtn"><i class="fas fa-sync-alt"></i> 重新随机 (洗牌题目&选项)</button>
+    </div>
+    <div id="experimentGrid" class="experiment-grid"></div>
+    <div class="footnote">
+        <i class="fas fa-microscope"></i> 核心原理：先通氨气后通CO₂、防止氧化、吸收顺序等。选项随机化，但正确答案遵循化学逻辑。
+    </div>
+</div>
+
+<script nonce="{{ request.nonce }}">
+    // ---------- 原始实验数据 (标准数据，不包含顺序) ----------
+    const rawExperiments = [
+        {
+            id: 1,
+            title: "🧪 氢氧化亚铁制备",
+            desc: "用 FeSO₄ 溶液和 NaOH 溶液反应，制备极易被氧化的白色 Fe(OH)₂ 沉淀。",
+            question: "为了避免沉淀迅速被空气氧化，应该采用哪种滴加顺序？",
+            // 原始两种方案 (左/右)，之后会随机交换位置
+            optionA_raw: "将 NaOH 溶液滴入 FeSO₄ 溶液",
+            optionB_raw: "将 FeSO₄ 溶液滴入 NaOH 溶液",
+            correctRaw: "A",   // 原始A为正确选项
+            explanation: "✅ 将NaOH滴入FeSO₄，FeSO₄过量，生成的Fe(OH)₂被过量Fe²⁺包围，减少与氧气接触；反之局部生成Fe(OH)₂立即暴露在碱性+空气中迅速氧化。"
+        },
+        {
+            id: 2,
+            title: "🌫️ 硫单质沉淀 (H₂S + SO₂)",
+            desc: "将 H₂S 和 SO₂ 通入水中反应：2H₂S + SO₂ → 3S↓ + 2H₂O。若只有一个气源需先后通入。",
+            question: "应该先通入哪种气体，再通另一种，可获得更纯净的硫沉淀？",
+            optionA_raw: "先通 H₂S",
+            optionB_raw: "先通 SO₂",
+            correctRaw: "B",
+            explanation: "✅ 先通 SO₂ 再通 H₂S 效果更佳。SO₂ 溶于水生成亚硫酸，再通 H₂S 反应生成硫；避免先通 H₂S 逸散且可能残留。"
+        },
+        {
+            id: 3,
+            title: "💨 Cl₂ 尾气吸收安全顺序",
+            desc: "用 MnO₂ + 浓盐酸制 Cl₂，并用 NaOH 溶液吸收尾气。实验结束时需要考虑停气顺序防止倒吸。",
+            question: "停止实验时，为防止倒吸和氯气泄漏，合理的操作顺序是？",
+            optionA_raw: "先停止加热，继续通气使Cl₂被吸收完全",
+            optionB_raw: "先关闭吸收瓶与发生装置的连接，再停止加热",
+            correctRaw: "A",
+            explanation: "✅ 安全规范：先停止加热，继续利用余热使Cl₂被完全吸收，避免装置内压力降低引起倒吸。"
+        },
+        {
+            id: 4,
+            title: "🧴 SO₂ 与 H₂S 溶液反应",
+            desc: "将 SO₂ 气体通入氢硫酸（H₂S 水溶液），或反过来通入，现象差异明显。",
+            question: "哪种顺序更容易观察到大量乳白色硫沉淀且现象稳定？",
+            optionA_raw: "将 SO₂ 通入 H₂S 溶液",
+            optionB_raw: "将 H₂S 通入 SO₂ 溶液",
+            correctRaw: "A",
+            explanation: "✅ SO₂ 通入 H₂S 溶液：H₂S 过量，生成硫胶体沉淀明显；反之可能产生多硫化物或沉淀不完全。"
+        },
+        {
+            id: 5,
+            title: "💎 二氧化碳与石灰水",
+            desc: "澄清石灰水中通 CO₂ 先浑浊后澄清（CaCO₃ → Ca(HCO₃)₂）。",
+            question: "若将澄清石灰水滴入 CO₂ 气体(或饱和 CO₂ 水溶液)，现象将有何不同？",
+            optionA_raw: "直接生成可溶的碳酸氢钙，几乎不浑浊",
+            optionB_raw: "仍然先浑浊后澄清，但浑浊持续时间更长",
+            correctRaw: "A",
+            explanation: "✅ 石灰水滴入过量CO₂中，直接形成可溶Ca(HCO₃)₂，无明显浑浊。顺序颠倒彻底改变现象，体现过量与不足的化学思维。"
+        },
+        {
+            id: 6,
+            title: "🏭 侯氏制碱法 (经典重现)",
+            desc: "饱和食盐水 + 氨气 + 二氧化碳 → 析出 NaHCO₃，再加热得纯碱。",
+            question: "工业上向饱和食盐水中通入氨气和二氧化碳，正确的顺序是？",
+            optionA_raw: "先通足量氨气，再通二氧化碳",
+            optionB_raw: "先通二氧化碳，再通氨气",
+            correctRaw: "A",
+            explanation: "✅ 先通氨气使食盐水呈强碱性，极大提高 CO₂ 吸收效率，生成高浓度HCO₃⁻析出NaHCO₃；反之CO₂溶解度低，收率极低。侯氏制碱法核心。"
+        }
+    ];
+
+    // ---------- 全局存储：经过随机化处理的实验列表（每个实验包含随机后的选项顺序与映射）----------
+    let randomizedExperiments = [];   // 存储 { ..., shuffledOptions, correctKey, optionADisplay, optionBDisplay }
+
+    // 工具：随机打乱数组 (Fisher-Yates)
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // 对单个实验进行选项随机化 (随机交换A/B位置)
+    // 返回新的选项文本，以及修正后的正确选项标识 ('A' 或 'B') 对应于界面上左侧/右侧按钮
+    function randomizeOptions(exp) {
+        const originalA = exp.optionA_raw;
+        const originalB = exp.optionB_raw;
+        const correctOriginal = exp.correctRaw; // 'A' 或 'B'
+        
+        // 随机决定是否交换 (true: 交换, false: 不交换)
+        const swap = Math.random() < 0.5;
+        let optADisplay, optBDisplay;
+        let correctKey;  // 对应显示后正确按钮是 'A' 还是 'B'
+        
+        if (!swap) {
+            optADisplay = originalA;
+            optBDisplay = originalB;
+            correctKey = correctOriginal; // 保持A/B映射
+        } else {
+            optADisplay = originalB;
+            optBDisplay = originalA;
+            // 交换后正确选项映射变化
+            correctKey = (correctOriginal === 'A') ? 'B' : 'A';
+        }
+        
+        return {
+            optADisplay,
+            optBDisplay,
+            correctKey   // 前端使用此字段判断正确选项
+        };
+    }
+
+    // 生成完全随机的实验列表（题目顺序打乱 + 每个实验内选项顺序随机）
+    function buildRandomizedExperiments() {
+        // 1. 先深拷贝原始实验列表
+        let shuffledRaw = [...rawExperiments];
+        // 2. 打乱题目顺序
+        shuffledRaw = shuffleArray(shuffledRaw);
+        
+        // 3. 对每个实验随机选项顺序
+        const randomized = shuffledRaw.map(exp => {
+            const { optADisplay, optBDisplay, correctKey } = randomizeOptions(exp);
+            return {
+                ...exp,
+                optADisplay: optADisplay,
+                optBDisplay: optBDisplay,
+                correctKey: correctKey,      // 动态正确选项 A/B
+                // 保留原始解释
+                explanation: exp.explanation,
+                // 保留原始id用于重置单个实验时保留当前随机状态（但重置单个不需要重新随机全局）
+                rawId: exp.id
+            };
+        });
+        return randomized;
+    }
+
+    // 存储用户选择状态 (key: 随机实验数组的索引, value: { selected: 'A'/'B' | null })
+    let userSelections = {};  // 以 randomized index 为键
+    
+    // 存储当前活跃的实验列表
+    let currentExperiments = [];
+
+    // 渲染所有卡片 (基于 currentExperiments 和 userSelections)
+    function renderAllCards() {
+        const grid = document.getElementById("experimentGrid");
+        if (!grid) return;
+        grid.innerHTML = "";
+        if (!currentExperiments.length) {
+            grid.innerHTML = '<div style="text-align:center; padding:3rem;">✨ 加载随机实验...</div>';
+            return;
+        }
+        
+        currentExperiments.forEach((exp, idx) => {
+            const card = document.createElement("div");
+            card.className = "exp-card";
+            card.id = `exp-card-${idx}`;
+            grid.appendChild(card);
+            renderSingleCard(exp, idx);
+        });
+    }
+    
+    // 渲染单张卡片（根据当前随机实验数据与用户选择）
+    function renderSingleCard(exp, idx) {
+        const cardDiv = document.getElementById(`exp-card-${idx}`);
+        if (!cardDiv) return;
+        
+        const selected = userSelections[idx] ? userSelections[idx].selected : null;
+        let feedbackStatus = "neutral";
+        let feedbackMsg = "";
+        
+        if (selected) {
+            const isCorrect = (selected === exp.correctKey);
+            if (isCorrect) {
+                feedbackStatus = "correct";
+                feedbackMsg = `✓ 判断精准！ ${exp.explanation}`;
+            } else {
+                feedbackStatus = "wrong";
+                feedbackMsg = `✗ 顺序有误。 ${exp.explanation}`;
+            }
+        } else {
+            feedbackMsg = "💡 点击上方按钮，判断通气/滴加顺序（选项顺序随机）";
+            feedbackStatus = "neutral";
+        }
+        
+        // 构建按钮样式类 (opt-first / opt-second)
+        // 选项A 与 选项B 显示内容分别为 optADisplay, optBDisplay
+        const html = `
+            <div class="card-header">
+                <div class="exp-icon">${exp.title.split(' ')[0] || '⚗️'}</div>
+                <div class="exp-title">${exp.title}</div>
+            </div>
+            <div class="exp-desc">
+                ${exp.desc}
+            </div>
+            <div class="question-box">
+                <i class="fas fa-question-circle"></i> ${exp.question}
+            </div>
+            <div class="choice-area">
+                <div class="btn-group">
+                    <button class="btn-option opt-first" data-choice="A" data-idx="${idx}">
+                        <i class="fas fa-droplet"></i> ${exp.optADisplay}
+                    </button>
+                    <button class="btn-option opt-second" data-choice="B" data-idx="${idx}">
+                        <i class="fas fa-droplet"></i> ${exp.optBDisplay}
+                    </button>
+                </div>
+                <div class="reset-icon" data-reset-idx="${idx}">
+                    <i class="fas fa-undo-alt"></i> 重置此题
+                </div>
+            </div>
+            <div class="feedback ${feedbackStatus}">
+                <i class="${feedbackStatus === 'correct' ? 'fas fa-check-circle' : (feedbackStatus === 'wrong' ? 'fas fa-times-circle' : 'fas fa-brain')}"></i>
+                ${feedbackMsg}
+            </div>
+        `;
+        cardDiv.innerHTML = html;
+        
+        // 绑定按钮事件 (由于动态生成，使用事件委托或者单独绑定)
+        const btnA = cardDiv.querySelector(`.btn-option[data-choice="A"]`);
+        const btnB = cardDiv.querySelector(`.btn-option[data-choice="B"]`);
+        const resetBtn = cardDiv.querySelector(`.reset-icon`);
+        
+        if (btnA) {
+            btnA.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleUserChoice(idx, 'A');
+            });
+        }
+        if (btnB) {
+            btnB.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleUserChoice(idx, 'B');
+            });
+        }
+        if (resetBtn) {
+            resetBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetSingleChoice(idx);
+            });
+        }
+    }
+    
+    // 处理用户选择
+    function handleUserChoice(idx, selectedKey) {
+        if (!currentExperiments[idx]) return;
+        if (!userSelections[idx]) userSelections[idx] = {};
+        userSelections[idx] = { selected: selectedKey };
+        // 重新渲染当前卡片
+        renderSingleCard(currentExperiments[idx], idx);
+    }
+    
+    // 重置单个实验的选择
+    function resetSingleChoice(idx) {
+        if (userSelections[idx]) {
+            delete userSelections[idx];
+        }
+        renderSingleCard(currentExperiments[idx], idx);
+    }
+    
+    // 重置全部（重新生成随机顺序，清空所有选择）
+    function fullRandomizeAndReset() {
+        // 重新生成实验列表（题目顺序随机 + 每个实验选项顺序随机）
+        currentExperiments = buildRandomizedExperiments();
+        userSelections = {};   // 清空所有选择状态
+        renderAllCards();
+    }
+    
+    // 只刷新题目&选项顺序但保留空选择（类似全新随机访问）
+    function reshuffleSession() {
+        fullRandomizeAndReset();
+    }
+    
+    // 页面初次加载 & 每次刷新/访问都完全随机
+    function init() {
+        fullRandomizeAndReset();
+        // 添加手动刷新按钮事件
+        const refreshBtn = document.getElementById('refreshOrderBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                reshuffleSession();
+            });
+        }
+    }
+    
+    // 监听页面加载完成
+    window.addEventListener('DOMContentLoaded', init);
+    
+    // 为了支持某些动态链接，同样暴露重置全局到window (可选)
+    window.reshuffleSession = reshuffleSession;
+</script>
+</body>
+</html>

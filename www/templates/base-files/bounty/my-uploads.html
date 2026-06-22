@@ -1,0 +1,477 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}我的投稿 - FreeHub{% endblock %}
+
+{% block content %}
+<div class="my-uploads-container" id="myUploadsApp">
+    <div class="page-header">
+        <h1><i class="fas fa-cloud-upload-alt"></i> 我的投稿</h1>
+        <p>您所有投稿的作品记录</p>
+        <div class="role-badge">
+            <i class="fas fa-user-secret"></i>
+            <span>{{ uid.nickname if uid else '子账户' }}</span>
+        </div>
+    </div>
+
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-file-upload"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">总投稿数</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--success);"><i class="fas fa-eye"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="statViewed">0</div>
+                <div class="stat-label">已被查看</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--warning);"><i class="fas fa-trophy"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="statSelected">0</div>
+                <div class="stat-label">已选中</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--info);"><i class="fas fa-coins"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="statReward">0</div>
+                <div class="stat-label">总获得积分</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="uploads-list" id="uploadsList"></div>
+
+    <div id="loadingSpinner" class="loading-spinner" style="display:none;">
+        <i class="fas fa-spinner fa-spin"></i> 加载中...
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.my-uploads-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-radius: 30px;
+    font-size: 0.9rem;
+}
+
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.uploads-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.upload-item {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 25px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.upload-item.selected {
+    border-color: var(--success);
+    background: rgba(74, 222, 128, 0.05);
+}
+
+.upload-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.upload-header h3 {
+    margin: 0;
+}
+
+.upload-header h3 a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 1.2rem;
+}
+
+.upload-header h3 a:hover {
+    color: var(--primary);
+}
+
+.upload-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.upload-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 15px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.success {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.status-badge.viewed {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--info);
+}
+
+.status-badge.pending {
+    background: rgba(250, 204, 21, 0.2);
+    color: var(--warning);
+}
+
+.upload-rewards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.reward-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.reward-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.reward-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.reward-item.total .reward-value {
+    color: var(--warning);
+}
+
+.upload-time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.btn-view {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-view:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    border: 2px dashed var(--border-color);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 25px;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-secondary);
+}
+
+.loading-spinner i {
+    margin-right: 8px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+@media (max-width: 768px) {
+    .stats-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .upload-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .upload-rewards {
+        justify-content: space-around;
+    }
+    
+    .btn-view {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+(function() {
+    'use strict';
+
+    const uploadsList = document.getElementById('uploadsList');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const statTotal = document.getElementById('statTotal');
+    const statViewed = document.getElementById('statViewed');
+    const statSelected = document.getElementById('statSelected');
+    const statReward = document.getElementById('statReward');
+
+    // ===== 加载列表 =====
+    async function loadList() {
+        loadingSpinner.style.display = 'block';
+        try {
+            const resp = await fetch('/user/api/bounty/my/uploads');
+            const data = await resp.json();
+            if (data.success) {
+                renderUploads(data.data);
+                calculateStats(data.data);
+            }
+        } catch (e) {
+            console.error('加载失败', e);
+            uploadsList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>加载失败</h3>
+                    <p>请刷新页面重试</p>
+                </div>
+            `;
+        } finally {
+            loadingSpinner.style.display = 'none';
+        }
+    }
+
+    // ===== 渲染 =====
+    function renderUploads(uploads) {
+        if (!uploads || uploads.length === 0) {
+            uploadsList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>暂无投稿</h3>
+                    <p>您还没有投递过任何作品</p>
+                    <a href="{{ url_for('user.bounty_index') }}" class="btn btn-primary">去悬赏市场看看</a>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        for (const upload of uploads) {
+            const selectedClass = upload.status === 'selected' ? 'selected' : '';
+            
+            let statusHtml = '';
+            if (upload.status === 'selected') {
+                statusHtml = '<span class="status-badge success">🏆 已选中</span>';
+            } else if (upload.is_viewed) {
+                statusHtml = '<span class="status-badge viewed">👁️ 已查看</span>';
+            } else {
+                statusHtml = '<span class="status-badge pending">⏳ 待查看</span>';
+            }
+
+            html += `
+                <div class="upload-item ${selectedClass}">
+                    <div class="upload-header">
+                        <h3><a href="/user/bounty/detail/${upload.bounty_id}">${escapeHtml(upload.bounty_title)}</a></h3>
+                        <div class="upload-status">${statusHtml}</div>
+                    </div>
+                    <div class="upload-title">${escapeHtml(upload.title)}</div>
+                    <p class="upload-desc">${escapeHtml(upload.description)}</p>
+                    <div class="upload-rewards">
+                        <div class="reward-item">
+                            <span class="reward-label">上传奖励</span>
+                            <span class="reward-value">${upload.upload_reward}</span>
+                        </div>
+                        <div class="reward-item">
+                            <span class="reward-label">查看奖励</span>
+                            <span class="reward-value">${upload.view_reward || 0}</span>
+                        </div>
+                        <div class="reward-item total">
+                            <span class="reward-label">总计</span>
+                            <span class="reward-value">${upload.total_reward}</span>
+                        </div>
+                    </div>
+                    <div class="upload-time">
+                        <i class="fas fa-clock"></i>
+                        <span>${upload.created_at}</span>
+                    </div>
+                    <a href="/user/bounty/detail/${upload.bounty_id}" class="btn-view">查看悬赏 <i class="fas fa-arrow-right"></i></a>
+                </div>
+            `;
+        }
+        uploadsList.innerHTML = html;
+    }
+
+    // ===== 计算统计 =====
+    function calculateStats(uploads) {
+        if (!uploads || uploads.length === 0) {
+            statTotal.textContent = '0';
+            statViewed.textContent = '0';
+            statSelected.textContent = '0';
+            statReward.textContent = '0';
+            return;
+        }
+        statTotal.textContent = uploads.length;
+        statViewed.textContent = uploads.filter(u => u.is_viewed).length;
+        statSelected.textContent = uploads.filter(u => u.status === 'selected').length;
+        const totalReward = uploads.reduce((sum, u) => sum + (parseFloat(u.total_reward) || 0), 0);
+        statReward.textContent = totalReward.toFixed(1);
+    }
+
+    // ===== 工具 =====
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ===== 初始化 =====
+    loadList();
+
+})();
+</script>
+{% endblock %}

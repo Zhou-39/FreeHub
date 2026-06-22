@@ -1,0 +1,196 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}邮箱验证结果{% endblock %}
+
+{% block content %}
+<div class="verification-container">
+    <div class="verification-card {% if success %}success{% else %}error{% endif %}">
+        <div class="result-icon">
+            {% if success %}
+            <i class="fas fa-check-circle"></i>
+            {% else %}
+            <i class="fas fa-exclamation-circle"></i>
+            {% endif %}
+        </div>
+
+        <h2>{% if success %}验证成功{% else %}验证失败{% endif %}</h2>
+
+        <p>{{ message }}</p>
+
+        <div class="action-buttons">
+            {% if success %}
+            <a href="/{{ basic_url }}/login" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i> 立即登录
+            </a>
+            {% else %}
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-home"></i> 返回首页
+            </a>
+            <a href="/{{ basic_url }}/resend-verification" class="btn btn-primary" id="resendBtn">
+                <i class="fas fa-paper-plane"></i> 重新发送验证邮件
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.verification-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    padding: 20px;
+}
+
+.verification-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px var(--shadow);
+    padding: 50px 40px;
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.verification-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px var(--shadow);
+}
+
+.verification-card.success {
+    border-top: 4px solid var(--success);
+}
+
+.verification-card.error {
+    border-top: 4px solid var(--danger);
+}
+
+.result-icon {
+    font-size: 5rem;
+    margin-bottom: 30px;
+}
+
+.success .result-icon {
+    color: var(--success);
+}
+
+.error .result-icon {
+    color: var(--danger);
+}
+
+.verification-card h2 {
+    font-size: 2.2rem;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.verification-card p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 35px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+    .verification-card {
+        padding: 30px 25px;
+    }
+    
+    .result-icon {
+        font-size: 4rem;
+    }
+    
+    .verification-card h2 {
+        font-size: 1.8rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const resendBtn = document.getElementById('resendBtn');
+    
+    if (resendBtn) {
+        resendBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            fetch('/{{ basic_url }}/resend-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('验证邮件已重新发送，请检查您的邮箱');
+                } else {
+                    alert(data.error || '发送失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('发送失败，请稍后重试');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

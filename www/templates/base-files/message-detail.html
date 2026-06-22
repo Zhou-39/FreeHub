@@ -1,0 +1,500 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}与 {{ other.nickname }} 的私信{% endblock %}
+
+{% block styles %}
+<style nonce="{{ request.nonce }}">
+.message-detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.message-header {
+    padding: 15px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.back-btn:hover {
+    background: var(--bg-tertiary);
+}
+
+.user-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
+    position: relative;
+    width: 45px;
+    height: 45px;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.online-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    background: var(--success);
+    border: 2px solid var(--bg-secondary);
+    border-radius: 50%;
+}
+
+.user-details h2 {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+}
+
+.user-details .user-level {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: var(--bg-primary);
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.message-item {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.message-outgoing {
+    justify-content: flex-end;
+}
+
+.message-incoming {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    word-wrap: break-word;
+}
+
+.message-outgoing .message-bubble {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message-incoming .message-bubble {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.message-content {
+    line-height: 1.5;
+    margin-bottom: 5px;
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.message-input-area {
+    padding: 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+.message-input-area form {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.message-input-area textarea {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    resize: none;
+    max-height: 120px;
+    min-height: 45px;
+}
+
+.message-input-area button {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    padding: 0;
+}
+
+.load-more-history {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 10px;
+    z-index: 1000;
+}
+
+.toast.success { background: var(--success); color: white; }
+.toast.error { background: var(--danger); color: white; }
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 24px;
+    width: 400px;
+    max-width: 90%;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="message-detail-container">
+    <div class="message-header">
+        <a href="/user/messages" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+        <div class="user-info">
+            <div class="user-avatar">
+                <div class="avatar-placeholder">{{ other.nickname[0]|upper }}</div>
+                {% if other.online_status %}<span class="online-dot"></span>{% endif %}
+            </div>
+            <div class="user-details">
+                <h2>{{ other.nickname }}</h2>
+                <span class="user-level">Lv.{{ other.level }}</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline btn-sm" id="transfer-btn">💰 转账</button>
+            <button class="btn btn-outline btn-sm" id="add-friend-btn">➕ 加好友</button>
+            <button class="btn btn-outline btn-sm" id="block-user-btn">🚫 拉黑</button>
+        </div>
+    </div>
+
+    <div class="messages-area" id="messagesArea">
+        <div class="messages-list" id="messagesList">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <div class="message-input-area">
+        <form id="messageForm">
+            <textarea id="messageContent" placeholder="输入消息... (Enter发送，Shift+Enter换行)" rows="1"></textarea>
+            <button type="submit" class="btn btn-primary" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+        </form>
+    </div>
+</div>
+
+<script nonce="{{ request.nonce }}">
+const otherUid = {{ other.uid }};
+let currentPage = 1;
+let hasMore = true;
+let isLoading = false;
+
+async function loadMessages(reset = true) {
+    if (isLoading) return;
+    if (reset) { currentPage = 1; hasMore = true; document.getElementById('messagesList').innerHTML = ''; }
+    if (!hasMore) return;
+    isLoading = true;
+    
+    try {
+        const response = await fetch(`/user/api/messages/history/${otherUid}?page=${currentPage}`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            if (reset) {
+                renderMessages(data.data.reverse());
+            } else {
+                const list = document.getElementById('messagesList');
+                const firstMsg = list.firstChild;
+                data.data.reverse().forEach(msg => {
+                    const msgEl = createMessageElement(msg);
+                    list.insertBefore(msgEl, firstMsg);
+                });
+            }
+            hasMore = data.has_next;
+            if (hasMore) currentPage++;
+        } else if (reset) {
+            document.getElementById('messagesList').innerHTML = '<div class="empty-state">暂无消息</div>';
+        }
+        scrollToBottom();
+    } catch (error) {
+        console.error('加载失败:', error);
+    } finally {
+        isLoading = false;
+    }
+}
+
+function renderMessages(messages) {
+    const list = document.getElementById('messagesList');
+    list.innerHTML = messages.map(msg => createMessageElementHtml(msg)).join('');
+}
+
+function createMessageElementHtml(msg) {
+    const isMe = msg.is_me;
+    return `
+        <div class="message-item ${isMe ? 'message-outgoing' : 'message-incoming'}">
+            <div class="message-bubble">
+                <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
+                <div class="message-meta">
+                    <span class="message-time">${msg.created_at}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createMessageElement(msg) {
+    const div = document.createElement('div');
+    div.className = `message-item ${msg.is_me ? 'message-outgoing' : 'message-incoming'}`;
+    div.innerHTML = `
+        <div class="message-bubble">
+            <div class="message-content">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
+            <div class="message-meta">
+                <span class="message-time">${msg.created_at}</span>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+function scrollToBottom() {
+    const area = document.getElementById('messagesArea');
+    area.scrollTop = area.scrollHeight;
+}
+
+document.getElementById('messageForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const content = document.getElementById('messageContent').value.trim();
+    if (!content) return;
+    
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('/user/api/messages/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to_uid: otherUid, content: content, message_type: 'normal' })
+        });
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('messageContent').value = '';
+            await loadMessages(true);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('发送失败', 'error');
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+// 转账功能
+document.getElementById('transfer-btn').addEventListener('click', showTransferModal);
+
+function showTransferModal() {
+    const modalHtml = `
+        <div id="transfer-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h3>💰 转账积分</h3>
+                <p>向 ${escapeHtml('{{ other.nickname }}')} 转账</p>
+                <input type="number" id="transfer-amount" placeholder="积分数量" min="1" max="1000" step="1" style="width:100%; padding:10px; margin:10px 0;">
+                <textarea id="transfer-message" placeholder="附言（可选）" rows="2" style="width:100%; padding:10px;"></textarea>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="cancel-transfer-btn">取消</button>
+                    <button class="btn btn-primary" id="confirm-transfer-btn">确认转账</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    document.getElementById('cancel-transfer-btn')?.addEventListener('click', closeModal);
+    document.getElementById('confirm-transfer-btn')?.addEventListener('click', submitTransfer);
+}
+
+function closeModal() { 
+    document.getElementById('transfer-modal')?.remove(); 
+}
+
+async function submitTransfer() {
+    const amount = parseInt(document.getElementById('transfer-amount').value);
+    const message = document.getElementById('transfer-message').value;
+    if (isNaN(amount) || amount < 1) { showToast('请输入有效积分数量', 'error'); return; }
+    if (amount > 1000) { showToast('单次转账不能超过1000积分', 'error'); return; }
+    
+    try {
+        const response = await fetch('/user/api/points/transfer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to_uid: otherUid, amount: amount, message: message })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeModal();
+            await loadMessages(true);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('转账失败', 'error');
+    }
+}
+
+// 添加好友
+document.getElementById('add-friend-btn').addEventListener('click', addFriend);
+
+async function addFriend() {
+    try {
+        const response = await fetch('/user/api/friends/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to_uid: otherUid, message: '' })
+        });
+        const data = await response.json();
+        showToast(data.message, data.success ? 'success' : 'error');
+    } catch (error) {
+        showToast('操作失败', 'error');
+    }
+}
+
+// 拉黑用户
+document.getElementById('block-user-btn').addEventListener('click', blockUser);
+
+async function blockUser() {
+    if (!confirm('确定要拉黑该用户吗？')) return;
+    try {
+        const response = await fetch('/user/api/block/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid: otherUid, reason: '' })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => window.location.href = '/user/messages', 1500);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('操作失败', 'error');
+    }
+}
+
+function showToast(message, type) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${escapeHtml(message)}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+document.getElementById('messagesArea').addEventListener('scroll', function() {
+    if (this.scrollTop < 50 && hasMore && !isLoading) loadMessages(false);
+});
+
+document.getElementById('messageContent').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+loadMessages(true);
+setInterval(() => loadMessages(true), 5000);
+</script>
+{% endblock %}

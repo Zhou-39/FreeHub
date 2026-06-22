@@ -1,0 +1,883 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}上传文件{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="upload-header">
+        <h1><i class="fas fa-cloud-upload-alt"></i> 上传文件</h1>
+        <p>支持多种文件格式，最大 100MB</p>
+        <div class="role-badge user">
+            <i class="fas fa-user-secret"></i>
+            <span>当前身份: {{ uid.nickname if uid else '子账户' }}</span>
+        </div>
+        <a href="/user/uploads" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回仓库
+        </a>
+    </div>
+
+    <div class="upload-card">
+        <!-- 上传区域 -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-placeholder">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>拖拽文件到此处</h3>
+                <p>或</p>
+                <button class="btn btn-primary" id="selectFileBtn" type="button">
+                    选择文件
+                </button>
+                <input type="file" id="fileInput" class="hidden">
+                <p class="upload-hint">支持 Ctrl+V 粘贴剪贴板图片</p>
+            </div>
+        </div>
+
+        <!-- 文件信息预览 -->
+        <div class="file-preview hidden" id="filePreview">
+            <div class="file-icon" id="fileIcon">
+                <i class="fas fa-file"></i>
+            </div>
+            <div class="file-details">
+                <h4 id="fileName">文件名</h4>
+                <p id="fileSize">文件大小</p>
+                <p id="fileType">文件类型</p>
+            </div>
+            <button class="btn-icon" id="removeFileBtn" type="button">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- 上传表单 -->
+        <form id="uploadForm" class="hidden">
+            <div class="form-group">
+                <label for="description">文件描述（可选）</label>
+                <textarea id="description" name="description" rows="3" 
+                          placeholder="简单描述一下这个文件..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="isPublic" checked>
+                    <span class="checkmark"></span>
+                    <span class="checkbox-text">公开分享（所有人可见）</span>
+                </label>
+            </div>
+
+            <!-- 上传进度 -->
+            <div class="upload-progress hidden" id="uploadProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="resetBtn">
+                    <i class="fas fa-redo"></i> 重新选择
+                </button>
+                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                    <i class="fas fa-cloud-upload-alt"></i> 开始上传
+                </button>
+            </div>
+        </form>
+
+        <!-- 上传结果 -->
+        <div class="upload-result hidden" id="uploadResult">
+            <div class="result-content">
+                <i class="fas fa-check-circle success"></i>
+                <h3>上传成功！</h3>
+                <p id="resultMessage">文件已成功上传到您的仓库</p>
+                <div class="result-actions">
+                    <a href="/user/uploads" class="btn btn-primary">
+                        <i class="fas fa-folder"></i> 查看仓库
+                    </a>
+                    <button class="btn btn-secondary" id="uploadAnotherBtn" type="button">
+                        <i class="fas fa-redo"></i> 继续上传
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传说明 -->
+    <div class="upload-guide">
+        <h2>上传说明</h2>
+        <div class="guide-grid">
+            <div class="guide-item">
+                <i class="fas fa-shield-alt"></i>
+                <h3>安全扫描</h3>
+                <p>所有上传文件都会经过病毒扫描，确保文件安全</p>
+            </div>
+            <div class="guide-item">
+                <i class="fas fa-eye"></i>
+                <h3>文件预览</h3>
+                <p>图片、文本、ZIP等文件支持在线预览</p>
+            </div>
+            <div class="guide-item">
+                <i class="fas fa-lock"></i>
+                <h3>隐私控制</h3>
+                <p>可以设置文件为公开或私密</p>
+            </div>
+            <div class="guide-item">
+                <i class="fas fa-download"></i>
+                <h3>下载统计</h3>
+                <p>查看文件的下载次数</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+/* 原有的所有样式保持不变，只需要在最后添加这几个工具类 */
+
+/* 显示状态工具类 */
+.hidden {
+    display: none !important;
+}
+
+.block {
+    display: block !important;
+}
+
+.flex {
+    display: flex !important;
+}
+
+.inline-flex {
+    display: inline-flex !important;
+}
+
+/* 其他原有样式保持不变... */
+/* 从你原来的 <style> 中复制所有内容到这里 */
+
+.upload-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.upload-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.upload-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.upload-header h1 i {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.upload-header p {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    margin-bottom: 15px;
+}
+
+.upload-header .btn {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.upload-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 30px;
+}
+
+.upload-area {
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+    background: var(--bg-primary);
+    cursor: pointer;
+}
+
+.upload-area:hover {
+    border-color: var(--primary);
+    background: rgba(67, 97, 238, 0.05);
+}
+
+.upload-area.drag-over {
+    border-color: var(--primary);
+    background: rgba(67, 97, 238, 0.1);
+}
+
+.upload-placeholder i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.upload-placeholder h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.upload-placeholder p {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.upload-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 15px;
+}
+
+.file-preview {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.file-icon {
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+.file-details {
+    flex: 1;
+}
+
+.file-details h4 {
+    color: var(--text-primary);
+    margin-bottom: 5px;
+}
+
+.file-details p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    resize: vertical;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-label input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: relative;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.checkbox-label:hover input ~ .checkmark {
+    border-color: var(--primary);
+}
+
+.checkbox-label input:checked ~ .checkmark {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.checkbox-label input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-text {
+    color: var(--text-primary);
+}
+
+.upload-progress {
+    margin: 20px 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.upload-result {
+    text-align: center;
+    padding: 40px;
+}
+
+.result-content i {
+    font-size: 4rem;
+    color: var(--success);
+    margin-bottom: 15px;
+}
+
+.result-content h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.result-content p {
+    color: var(--text-secondary);
+    margin-bottom: 25px;
+}
+
+.result-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.upload-guide {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+}
+
+.upload-guide h2 {
+    text-align: center;
+    color: var(--text-primary);
+    margin-bottom: 25px;
+}
+
+.guide-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.guide-item {
+    text-align: center;
+    padding: 20px;
+}
+
+.guide-item i {
+    font-size: 2rem;
+    color: var(--primary);
+    margin-bottom: 10px;
+}
+
+.guide-item h3 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.guide-item p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .upload-header .btn {
+        position: static;
+        margin-bottom: 15px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .result-actions {
+        flex-direction: column;
+    }
+    
+    .guide-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 显示状态工具类 */
+.hidden {
+    display: none !important;
+}
+
+.block {
+    display: block !important;
+}
+
+.flex {
+    display: flex !important;
+}
+
+.inline-flex {
+    display: inline-flex !important;
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+(function() {
+    'use strict';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        let selectedFile = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const filePreview = document.getElementById('filePreview');
+        const fileIcon = document.getElementById('fileIcon');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileType = document.getElementById('fileType');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const description = document.getElementById('description');
+        const isPublic = document.getElementById('isPublic');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const uploadResult = document.getElementById('uploadResult');
+        const resultMessage = document.getElementById('resultMessage');
+        const uploadAnotherBtn = document.getElementById('uploadAnotherBtn');
+
+        // 点击上传区域
+        if (uploadArea) {
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+        }
+
+        // 点击选择文件按钮
+        if (selectFileBtn) {
+            selectFileBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fileInput.click();
+            });
+        }
+
+        // 文件选择
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+        }
+
+        // 拖拽上传
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        // 粘贴上传
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        handleFileSelect(file);
+                        break;
+                    }
+                }
+            }
+        });
+
+        // 移除文件
+        if (removeFileBtn) {
+            removeFileBtn.addEventListener('click', removeFile);
+        }
+
+        // 重新选择
+        if (resetBtn) {
+            resetBtn.addEventListener('click', removeFile);
+        }
+
+        // 继续上传
+        if (uploadAnotherBtn) {
+            uploadAnotherBtn.addEventListener('click', uploadAnother);
+        }
+
+        // 表单提交
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', handleSubmit);
+        }
+
+        function handleFileSelect(file) {
+            // 验证文件大小（100MB）
+            if (file.size > 100 * 1024 * 1024) {
+                alert('文件大小不能超过 100MB');
+                return;
+            }
+            
+            selectedFile = file;
+            
+            // 更新UI - 使用 classList 代替 style
+            if (uploadArea) uploadArea.classList.add('hidden');
+            if (filePreview) {
+                filePreview.classList.remove('hidden');
+                filePreview.classList.add('flex');
+            }
+            if (uploadForm) {
+                uploadForm.classList.remove('hidden');
+                uploadForm.classList.add('block');
+            }
+            
+            // 显示文件信息
+            if (fileName) fileName.textContent = file.name;
+            if (fileSize) fileSize.textContent = formatFileSize(file.size);
+            if (fileType) fileType.textContent = file.type || '未知类型';
+            
+            // 更新图标
+            updateFileIcon(file);
+        }
+
+        function updateFileIcon(file) {
+            if (!fileIcon) return;
+            
+            const icon = fileIcon.querySelector('i');
+            if (!icon) return;
+            
+            if (file.type.startsWith('image/')) {
+                icon.className = 'fas fa-file-image';
+            } else if (file.type.startsWith('text/')) {
+                icon.className = 'fas fa-file-alt';
+            } else if (file.name.endsWith('.zip') || file.type === 'application/zip') {
+                icon.className = 'fas fa-file-archive';
+            } else if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {
+                icon.className = 'fas fa-file-pdf';
+            } else {
+                icon.className = 'fas fa-file';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function removeFile() {
+            selectedFile = null;
+            if (fileInput) fileInput.value = '';
+            
+            // 使用 classList 代替 style
+            if (uploadArea) uploadArea.classList.remove('hidden');
+            if (filePreview) {
+                filePreview.classList.add('hidden');
+                filePreview.classList.remove('flex');
+            }
+            if (uploadForm) {
+                uploadForm.classList.add('hidden');
+                uploadForm.classList.remove('block');
+            }
+            if (uploadProgress) {
+                uploadProgress.classList.add('hidden');
+                uploadProgress.classList.remove('block');
+            }
+            if (uploadResult) {
+                uploadResult.classList.add('hidden');
+                uploadResult.classList.remove('block');
+            }
+        }
+
+        function uploadAnother() {
+            if (uploadResult) {
+                uploadResult.classList.add('hidden');
+                uploadResult.classList.remove('block');
+            }
+            removeFile();
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            if (!selectedFile) return;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('description', description ? description.value : '');
+            formData.append('isPublic', isPublic ? isPublic.checked : true);
+            
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<span class="loading-spinner"></span> 上传中...';
+            }
+            
+            if (uploadProgress) {
+                uploadProgress.classList.remove('hidden');
+                uploadProgress.classList.add('block');
+            }
+            
+            // 使用 XMLHttpRequest 上传以获得进度事件
+            let interval = null;
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/user/upload/file');
+
+            // 当浏览器能够获取到总长度时，显示真实进度
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    if (progressFill) progressFill.style.width = percent + '%';
+                    if (progressText) progressText.textContent = percent + '%';
+                }
+            };
+
+            // 请求状态处理
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    clearInterval(interval);
+                    try {
+                        const data = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+                        if (xhr.status >= 200 && xhr.status < 300 && data.success) {
+                            if (progressFill) progressFill.style.width = '100%';
+                            if (progressText) progressText.textContent = '100%';
+                            setTimeout(() => {
+                                if (uploadForm) {
+                                    uploadForm.classList.add('hidden');
+                                    uploadForm.classList.remove('block');
+                                }
+                                if (filePreview) {
+                                    filePreview.classList.add('hidden');
+                                    filePreview.classList.remove('flex');
+                                }
+                                if (uploadResult) {
+                                    uploadResult.classList.remove('hidden');
+                                    uploadResult.classList.add('block');
+                                }
+                                if (resultMessage) resultMessage.textContent = data.message || '文件已成功上传';
+                            }, 500);
+                        } else {
+                            alert((data && data.error) || '上传失败');
+                            removeFile();
+                        }
+                    } catch (err) {
+                        console.error('解析响应失败:', err);
+                        alert('上传失败，请重试');
+                        removeFile();
+                    } finally {
+                        if (uploadBtn) {
+                            uploadBtn.disabled = false;
+                            uploadBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> 开始上传';
+                        }
+                        if (uploadProgress) {
+                            uploadProgress.classList.add('hidden');
+                            uploadProgress.classList.remove('block');
+                        }
+                        if (progressFill) progressFill.style.width = '0%';
+                        if (progressText) progressText.textContent = '0%';
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                clearInterval(interval);
+                console.error('上传失败: 网络错误');
+                alert('网络错误，请重试');
+                removeFile();
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> 开始上传';
+                }
+                if (uploadProgress) {
+                    uploadProgress.classList.add('hidden');
+                    uploadProgress.classList.remove('block');
+                }
+                if (progressFill) progressFill.style.width = '0%';
+                if (progressText) progressText.textContent = '0%';
+            };
+
+            // 如果服务器或浏览器不提供可计算长度，使用模拟进度让 UI 有反馈（最高到 90%）
+            interval = setInterval(() => {
+                const current = parseFloat(progressFill?.style.width || 0);
+                if (current < 90) {
+                    const inc = Math.random() * 6;
+                    const next = Math.min(90, current + inc);
+                    if (progressFill) progressFill.style.width = next + '%';
+                    if (progressText) progressText.textContent = Math.floor(next) + '%';
+                }
+            }, 300);
+
+            // 发送数据
+            xhr.send(formData);
+        }
+    });
+})();
+</script>
+{% endblock %}

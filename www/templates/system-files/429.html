@@ -1,0 +1,103 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}请求过于频繁 - 429{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-content">
+        <div class="error-animation">
+            <div class="error-icon">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <div class="error-number">
+                4<span class="zero">2</span>9
+            </div>
+        </div>
+        
+        <div class="error-text">
+            <h1>请求过于频繁</h1>
+            <p>您的请求速度过快，请稍后再试。</p>
+            <div class="error-details">
+                <p>系统限制：</p>
+                <ul>
+                    <li>为防止滥用，系统限制了请求频率</li>
+                    <li>请等待一段时间后重试</li>
+                    <li>如果这是正常操作，请联系管理员</li>
+                </ul>
+                <div id="countdown" style="margin-top: 15px; padding: 10px; background: var(--bg-primary); border-radius: 5px;">
+                    <p style="margin: 0; color: var(--primary); font-weight: 600;">
+                        <i class="fas fa-clock"></i> 自动刷新剩余时间: <span id="timer">30</span>秒
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="error-actions">
+            <button class="btn btn-primary" onclick="refreshPage()">
+                <i class="fas fa-redo"></i> 立即刷新
+            </button>
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-home"></i> 返回首页
+            </a>
+            <a href="javascript:history.back()" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> 返回上页
+            </a>
+        </div>
+        
+        <div class="error-search">
+            <p>您也可以：</p>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="输入关键词搜索...">
+                <button class="btn btn-search" onclick="performSearch()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.error-icon {
+    color: var(--warning);
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+let countdownTime = 30;
+
+function startCountdown() {
+    const timerElement = document.getElementById('timer');
+    const countdown = setInterval(() => {
+        countdownTime--;
+        timerElement.textContent = countdownTime;
+        
+        if (countdownTime <= 0) {
+            clearInterval(countdown);
+            refreshPage();
+        }
+    }, 1000);
+}
+
+function refreshPage() {
+    window.location.reload();
+}
+
+function performSearch() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    if (searchTerm) {
+        window.location.href = `/search?q=${encodeURIComponent(searchTerm)}`;
+    } else {
+        alert('请输入搜索关键词');
+    }
+}
+
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        performSearch();
+    }
+});
+
+// 开始倒计时
+startCountdown();
+</script>
+{% endblock %}

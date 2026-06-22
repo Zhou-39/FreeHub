@@ -1,0 +1,611 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}{{ title }} - {{ role[0] }}{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <div class="page-header">
+        <h1><i class="fas fa-{{ icon }}"></i> {{ title }}</h1>
+        <p>{{ description }}</p>
+        <div class="identity-badge">
+            {% if role[0] == 'Admins' %}
+            <i class="fas fa-user-shield"></i> 普通管理员
+            {% elif role[0] == 'SuperAdmins' %}
+            <i class="fas fa-crown"></i> 超级管理员
+            {% elif role[0] == 'Owners' %}
+            <i class="fas fa-gem"></i> 网站所有者
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label><i class="fas fa-filter"></i> 筛选：</label>
+            {% if type == 'uploads' %}
+            <select id="categoryFilter" class="filter-select">
+                <option value="all" {% if category == 'all' %}selected{% endif %}>全部分类</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if category == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <select id="scanFilter" class="filter-select">
+                <option value="all" {% if scan_status == 'all' %}selected{% endif %}>全部状态</option>
+                <option value="clean" {% if scan_status == 'clean' %}selected{% endif %}>安全</option>
+                <option value="infected" {% if scan_status == 'infected' %}selected{% endif %}>感染</option>
+                <option value="pending" {% if scan_status == 'pending' %}selected{% endif %}>待扫描</option>
+            </select>
+            {% endif %}
+        </div>
+        
+        <div class="search-group">
+            <input type="text" id="searchInput" placeholder="搜索{{ search_placeholder }}..." value="{{ search }}">
+            <button class="btn-search" id="searchBtn">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 内容列表 -->
+    <div class="content-list">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    {% for col in columns %}
+                    <th>{{ col.name }}</th>
+                    {% endfor %}
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    {% for col in columns %}
+                    <td>
+                        {% if col.type == 'text' %}
+                            {{ item[col.field] }}
+                        {% elif col.type == 'link' %}
+                            <a href="{{ col.link_prefix }}{{ item[col.field_id] }}" class="content-link">
+                                {{ item[col.field] }}
+                            </a>
+                        {% elif col.type == 'author' %}
+                            {% set author = get_uid_by_id(item[col.field]) %}
+                            <span class="author-info">
+                                <i class="fas fa-user-secret"></i>
+                                {{ author.nickname if author else '已删除' }}
+                                <small>(UID: {{ item[col.field] }})</small>
+                            </span>
+                        {% elif col.type == 'size' %}
+                            {{ format_size(item[col.field]) }}
+                        {% elif col.type == 'date' %}
+                            {{ item[col.field].strftime('%Y-%m-%d %H:%M') if item[col.field] else '未知' }}
+                        {% elif col.type == 'badge' %}
+                            <span class="badge {{ col.badge_class }}{{ item[col.field] }}">
+                                {{ item[col.field] }}
+                            </span>
+                        {% elif col.type == 'boolean' %}
+                            <span class="status-badge {% if item[col.field] %}active{% else %}inactive{% endif %}">
+                                {{ '是' if item[col.field] else '否' }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td>
+                        <div class="action-buttons">
+                            <a href="/{{ basic_url }}/{{ type }}/{{ item.id }}" class="btn-icon" title="查看详情">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            
+                            {% if type == 'uploads' %}
+                            <a href="/{{ basic_url }}/upload/{{ item.id }}/preview" class="btn-icon" title="预览" target="_blank" {% if not item.has_preview %}style="opacity:0.5;pointer-events:none;"{% endif %}>
+                                <i class="fas fa-image"></i>
+                            </a>
+                            <button class="btn-icon scan-file-btn" data-file-id="{{ item.id }}" title="重新扫描">
+                                <i class="fas fa-shield-alt"></i>
+                            </button>
+                            {% endif %}
+                            
+                            {% if item.is_deleted %}
+                            <button class="btn-icon restore-item-btn" data-item-id="{{ item.id }}" data-item-type="{{ type }}" title="恢复">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            {% else %}
+                            <button class="btn-icon delete-item-btn" data-item-id="{{ item.id }}" data-item-type="{{ type }}" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="{{ columns|length + 1 }}" class="empty-state">
+                        <i class="fas fa-{{ empty_icon }}"></i>
+                        <p>{{ empty_message }}</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if scan_status %}&scan_status={{ scan_status }}{% endif %}" class="page-link">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+        
+        {% for page in pagination.iter_pages() %}
+            {% if page %}
+                <a href="?page={{ page }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if scan_status %}&scan_status={{ scan_status }}{% endif %}" 
+                   class="page-link {% if page == pagination.page %}active{% endif %}">
+                    {{ page }}
+                </a>
+            {% else %}
+                <span class="page-link">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if scan_status %}&scan_status={{ scan_status }}{% endif %}" class="page-link">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style nonce="{{ request.nonce }}">
+.content-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.identity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 10px;
+}
+
+.filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    background: var(--bg-secondary);
+    padding: 15px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 8px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-width: 120px;
+}
+
+.search-group {
+    display: flex;
+    gap: 10px;
+}
+
+.search-group input {
+    padding: 8px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    width: 250px;
+}
+
+.btn-search {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+}
+
+.content-list {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+    margin-bottom: 30px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1000px;
+}
+
+.data-table th {
+    background: var(--bg-primary);
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.data-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.data-table tr:hover td {
+    background: var(--bg-primary);
+}
+
+.content-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.content-link:hover {
+    text-decoration: underline;
+}
+
+.author-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-secondary);
+}
+
+.author-info i {
+    color: var(--primary);
+}
+
+.author-info small {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge.category {
+    background: var(--primary);
+    color: white;
+}
+
+.badge.public {
+    background: var(--success);
+    color: white;
+}
+
+.badge.private {
+    background: var(--text-secondary);
+    color: white;
+}
+
+.badge.clean {
+    background: var(--success);
+    color: white;
+}
+
+.badge.infected {
+    background: var(--danger);
+    color: white;
+}
+
+.badge.pending {
+    background: var(--warning);
+    color: black;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.status-badge.inactive {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--danger);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-icon.delete:hover {
+    background: var(--danger);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px !important;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.page-link:hover {
+    background: var(--bg-secondary);
+}
+
+.page-link.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    // 搜索按钮点击事件
+    const searchBtn = document.getElementById('searchBtn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', searchContent);
+    }
+    
+    // 搜索输入框回车事件
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchContent();
+            }
+        });
+    }
+    
+    {% if type == 'uploads' %}
+    // 分类筛选变化事件
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', applyFilter);
+    }
+    
+    // 扫描状态筛选变化事件
+    const scanFilter = document.getElementById('scanFilter');
+    if (scanFilter) {
+        scanFilter.addEventListener('change', applyFilter);
+    }
+    {% endif %}
+    
+    // 删除按钮点击事件
+    document.querySelectorAll('.delete-item-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            deleteItem(this.dataset.itemId, this.dataset.itemType);
+        });
+    });
+    
+    // 恢复按钮点击事件
+    document.querySelectorAll('.restore-item-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            restoreItem(this.dataset.itemId, this.dataset.itemType);
+        });
+    });
+    
+    // 扫描文件按钮点击事件
+    document.querySelectorAll('.scan-file-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            scanFile(this.dataset.fileId);
+        });
+    });
+});
+
+function applyFilter() {
+    const url = new URL(window.location.href);
+    const params = new URLSearchParams(url.search);
+    
+    {% if type == 'uploads' %}
+    const category = document.getElementById('categoryFilter')?.value;
+    const scanStatus = document.getElementById('scanFilter')?.value;
+    
+    if (category && category !== 'all') {
+        params.set('category', category);
+    } else {
+        params.delete('category');
+    }
+    
+    if (scanStatus && scanStatus !== 'all') {
+        params.set('scan_status', scanStatus);
+    } else {
+        params.delete('scan_status');
+    }
+    {% endif %}
+    
+    params.set('page', 1);
+    
+    window.location.href = url.pathname + '?' + params.toString();
+}
+
+function searchContent() {
+    const searchInput = document.getElementById('searchInput');
+    const url = new URL(window.location.href);
+    const params = new URLSearchParams(url.search);
+    
+    if (searchInput && searchInput.value) {
+        params.set('search', searchInput.value);
+    } else {
+        params.delete('search');
+    }
+    
+    params.set('page', 1);
+    
+    window.location.href = url.pathname + '?' + params.toString();
+}
+
+function deleteItem(id, type) {
+    if (!confirm('确定要删除此项吗？')) {
+        return;
+    }
+    
+    fetch(`/{{ basic_url }}/${type}/${id}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || '删除成功');
+            location.reload();
+        } else {
+            alert(data.error || '操作失败');
+        }
+    })
+    .catch(error => {
+        alert('操作失败');
+    });
+}
+
+function restoreItem(id, type) {
+    if (!confirm('确定要恢复此项吗？')) {
+        return;
+    }
+    
+    fetch(`/{{ basic_url }}/${type}/${id}/restore`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || '恢复成功');
+            location.reload();
+        } else {
+            alert(data.error || '操作失败');
+        }
+    })
+    .catch(error => {
+        alert('操作失败');
+    });
+}
+
+function scanFile(id) {
+    if (!confirm('确定要重新扫描此文件吗？')) {
+        return;
+    }
+    
+    fetch(`/{{ basic_url }}/upload/${id}/scan`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || '扫描完成');
+            location.reload();
+        } else {
+            alert(data.error || '扫描失败');
+        }
+    })
+    .catch(error => {
+        alert('扫描失败');
+    });
+}
+</script>
+{% endblock %}

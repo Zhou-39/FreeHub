@@ -1,0 +1,581 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}关于 FreeHub{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1>关于 FreeHub</h1>
+        <p class="page-subtitle">一个初三生的技术乌托邦</p>
+    </div>
+
+    <div class="about-content">
+        <!-- 项目介绍 -->
+        <section class="about-section">
+            <div class="section-header">
+                <i class="fas fa-code"></i>
+                <h2>FreeHub 是什么？</h2>
+            </div>
+            <div class="section-content">
+                <p>FreeHub 是一个完全由个人开发的云端 IDE 平台，集成了代码编辑、容器运行、子域名服务、内网穿透等功能。你可以把它理解为一个简化版的 GitHub Codespaces + Cloudflare Tunnel。</p>
+                <p>这个项目始于 2024 年，目前仍在不断迭代中。所有代码均为个人手写，没有使用商业框架，目标是打造一个真正「自由」的开发环境。</p>
+            </div>
+        </section>
+
+        <!-- 核心功能 -->
+        <section class="about-section">
+            <div class="section-header">
+                <i class="fas fa-cogs"></i>
+                <h2>核心功能</h2>
+            </div>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-laptop-code"></i></div>
+                    <h3>云端 IDE</h3>
+                    <p>基于 Monaco Editor 的在线代码编辑器，支持语法高亮、代码补全、多文件编辑。</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-terminal"></i></div>
+                    <h3>容器终端</h3>
+                    <p>每个项目拥有独立的 Docker 容器，支持 Python、C、C++、Java、Node.js 等多语言运行。</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-globe"></i></div>
+                    <h3>子域名服务</h3>
+                    <p>注册 xxx.share.free-hub.cn 子域名，将任意网址通过 iframe 嵌入展示。</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-network-wired"></i></div>
+                    <h3>内网穿透</h3>
+                    <p>将 IDE 容器内的 Web 应用暴露到公网，格式：{用户名}-{项目名}-{端口}.share.free-hub.cn</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 我们的故事（真实版） -->
+        <section class="about-section">
+            <div class="section-header">
+                <i class="fas fa-user-graduate"></i>
+                <h2>关于我</h2>
+            </div>
+            <div class="section-content">
+                <p>你好👋，我是 FreeHub 的创建者，一个正在备战中考的初三学生。</p>
+                <p>我从小学六年级开始接触编程，从 HTML 到 Python，从 Flask 到 Docker，一点一点搭建起了这个平台。FreeHub 最初只是我的个人实验场，后来慢慢变成了一个可以分享给朋友使用的工具。</p>
+                <p>为什么叫 FreeHub？因为我想做一个「自由」的枢纽 —— 自由的代码编辑、自由的域名服务、自由的内网穿透。没有商业束缚，只有技术热爱。</p>
+                <p>中考结束后，我会继续完善这个项目，让更多人能免费使用。</p>
+            </div>
+        </section>
+
+        <!-- 发展历程（真实版） -->
+        <section class="about-section">
+            <div class="section-header">
+                <i class="fas fa-history"></i>
+                <h2>发展历程</h2>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-date">2024.09</div>
+                    <div class="timeline-content">
+                        <h3>项目启动</h3>
+                        <p>开始写第一个 Flask 应用，最初只是一个简单的博客系统。</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2024.12</div>
+                    <div class="timeline-content">
+                        <h3>接入 SSO</h3>
+                        <p>接入主站单点登录，用户量开始增长。</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2025.02</div>
+                    <div class="timeline-content">
+                        <h3>Share 分站上线</h3>
+                        <p>子域名服务上线，用户可以注册 xxx.share.free-hub.cn 分享自己的网站。</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2025.04</div>
+                    <div class="timeline-content">
+                        <h3>IDE 分站上线</h3>
+                        <p>云端 IDE 功能完成，支持在线编写、运行代码。</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2025.05</div>
+                    <div class="timeline-content">
+                        <h3>内网穿透功能</h3>
+                        <p>实现端口转发，IDE 容器内的 Web 应用可暴露到公网。</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2026.06</div>
+                    <div class="timeline-content">
+                        <h3>中考倒计时 · 致谢系统</h3>
+                        <p>上线致谢页，开启 flag 挑战，中考后再继续迭代。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 我们的价值观（真实版） -->
+        <section class="about-section">
+            <div class="section-header">
+                <i class="fas fa-heart"></i>
+                <h2>我的理念</h2>
+            </div>
+            <div class="values-grid">
+                <div class="value-item">
+                    <div class="value-icon"><i class="fas fa-gem"></i></div>
+                    <h3>免费开放</h3>
+                    <p>个人项目，不搞商业化。所有功能永久免费，零花钱有限但诚意无限。</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon"><i class="fas fa-bug"></i></div>
+                    <h3>安全第一</h3>
+                    <p>欢迎提交漏洞，Docker逃逸赏金200元，致谢页永久留名。</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon"><i class="fas fa-users"></i></div>
+                    <h3>社区共建</h3>
+                    <p>每一位贡献者都会写入致谢页，技术人的浪漫不需要太多钱。</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon"><i class="fas fa-rocket"></i></div>
+                    <h3>持续迭代</h3>
+                    <p>中考不是终点，FreeHub 会一直活下去。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据统计（真实版） -->
+        <section class="about-section">
+            <div class="section-header">
+                <i class="fas fa-chart-line"></i>
+                <h2>当前数据</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number" data-count="{{ total_users }}">0</div>
+                    <div class="stat-label">注册用户</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-count="3">0</div>
+                    <div class="stat-label">子域名注册</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-count="2">0</div>
+                    <div class="stat-label">致谢贡献者</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-count="500">0</div>
+                    <div class="stat-label">赏金池(¥)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 挑战者招募（新增） -->
+        <section class="challenge-section">
+            <div class="section-header">
+                <i class="fas fa-flag-checkered"></i>
+                <h2>🏴‍☠️ 广纳贤士 · 挑战者招募</h2>
+            </div>
+            <div class="challenge-grid">
+                <div class="challenge-card flag-card">
+                    <div class="challenge-icon">🚩</div>
+                    <h3>Capture The Flag</h3>
+                    <p>目标文件：<code>/var/website/www/flag.txt</code></p>
+                    <p>拿到 flag 即可成为 <strong>「FreeHub 荣誉共建者」</strong>，永久写入致谢页。</p>
+                </div>
+                <div class="challenge-card bounty-card">
+                    <div class="challenge-icon">💰</div>
+                    <h3>赏金计划</h3>
+                    <div class="bounty-list">
+                        <div class="bounty-item"><span>Docker逃逸</span><span class="bounty-amount">¥200</span></div>
+                        <div class="bounty-item"><span>命令注入/RCE</span><span class="bounty-amount">¥200</span></div>
+                        <div class="bounty-item"><span>任意文件读取</span><span class="bounty-amount">¥100</span></div>
+                        <div class="bounty-item"><span>SSRF/认证绕过</span><span class="bounty-amount">¥50</span></div>
+                    </div>
+                    <p class="bounty-note">⚠️ 总量 ¥500，发完即止。我是初三生，零花钱诚意，请多包涵。</p>
+                </div>
+                <div class="challenge-card thanks-card">
+                    <div class="challenge-icon">🌟</div>
+                    <h3>永久致谢</h3>
+                    <p>所有贡献者会永久保留在 <a href="/thanks">致谢页</a></p>
+                    <div class="thanks-preview">
+                        <span>🎖️ 弈秋 · 积分精度问题 (2025-05-25)</span>
+                        <span>🎖️ 弈秋 · IDE逃逸漏洞 (2025-05-26)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="challenge-footer">
+                <p>—— 中考后再见，FreeHub 会变得更好。</p>
+                <a href="/thanks" class="btn-primary">查看致谢页 →</a>
+            </div>
+        </section>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.page-header h1 {
+    font-size: 3rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+.about-section {
+    margin-bottom: 60px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--primary);
+}
+
+.section-header i {
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+.section-header h2 {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+}
+
+.section-content {
+    line-height: 1.8;
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+}
+
+.feature-item {
+    background: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 16px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s;
+}
+
+.feature-item:hover {
+    transform: translateY(-3px);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.feature-item h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.feature-item p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 25px;
+}
+
+.value-item {
+    background: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 16px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.value-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+}
+
+.value-icon i {
+    font-size: 1.8rem;
+    color: white;
+}
+
+.value-item h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.value-item p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.timeline {
+    position: relative;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 120px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--primary);
+}
+
+.timeline-item {
+    display: flex;
+    margin-bottom: 30px;
+}
+
+.timeline-date {
+    width: 100px;
+    font-weight: bold;
+    color: var(--primary);
+    padding-top: 5px;
+    font-family: monospace;
+}
+
+.timeline-content {
+    flex: 1;
+    background: var(--bg-secondary);
+    padding: 15px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-left: 30px;
+    position: relative;
+}
+
+.timeline-content::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 15px;
+    width: 16px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 50%;
+}
+
+.timeline-content h3 {
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+}
+
+.timeline-content p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    text-align: center;
+}
+
+.stat-item {
+    background: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.challenge-section {
+    background: linear-gradient(135deg, rgba(67,97,238,0.1), rgba(139,92,246,0.1));
+    border-radius: 24px;
+    padding: 30px;
+    margin-top: 40px;
+}
+
+.challenge-section .section-header {
+    border-bottom-color: var(--primary);
+}
+
+.challenge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin: 25px 0;
+}
+
+.challenge-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.challenge-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.challenge-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.challenge-card p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 8px 0;
+}
+
+.challenge-card code {
+    background: #0f172a;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.bounty-list {
+    text-align: left;
+    margin: 15px 0;
+}
+
+.bounty-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+.bounty-amount {
+    color: #22c55e;
+    font-weight: bold;
+}
+
+.bounty-note {
+    font-size: 0.7rem;
+    color: #64748b;
+    margin-top: 10px;
+}
+
+.thanks-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.challenge-footer {
+    text-align: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.challenge-footer a {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 40px;
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .page-header h1 { font-size: 2rem; }
+    .section-header h2 { font-size: 1.4rem; }
+    .timeline::before { left: 70px; }
+    .timeline-date { width: 60px; font-size: 0.8rem; }
+    .challenge-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+function animateNumbers() {
+    const statNumbers = document.querySelectorAll('.stat-number');
+    statNumbers.forEach(stat => {
+        const target = parseInt(stat.getAttribute('data-count'));
+        let current = 0;
+        const increment = target / 50;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+            stat.textContent = Math.floor(current);
+        }, 30);
+    });
+}
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            animateNumbers();
+            observer.unobserve(entry.target);
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const statsSection = document.querySelector('.stats-grid');
+    if (statsSection) observer.observe(statsSection);
+});
+</script>
+{% endblock %}

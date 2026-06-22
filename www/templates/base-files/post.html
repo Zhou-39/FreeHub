@@ -1,0 +1,503 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}{{ post.title }} - 帖子{% endblock %}
+
+{% block content %}
+<div class="post-detail-container">
+    <!-- 帖子头部 -->
+    <div class="post-detail-header">
+        <div class="post-detail-meta">
+            <span class="post-category">
+                <i class="fas fa-comments"></i> 帖子
+            </span>
+            <span class="post-date">
+                <i class="far fa-clock"></i> {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </span>
+            <span class="post-views">
+                <i class="far fa-eye"></i> {{ post.views }} 次阅读
+            </span>
+        </div>
+        
+        <h1 class="post-detail-title">{{ post.title }}</h1>
+        
+        <div class="post-author-info">
+            <div class="author-avatar">
+                {% if post.author.avatar %}
+                <img src="{{ post.author.avatar }}" alt="{{ post.author.nickname }}">
+                {% else %}
+                <div class="avatar-placeholder">
+                    {{ post.author.nickname[0] | upper }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="author-details">
+                <a href="/user/uid-profile?uid={{ post.author.uid }}" class="author-name">
+                    {{ post.author.nickname }}
+                </a>
+                <div class="author-badge">
+                    <span class="badge level">Lv.{{ post.author.level }}</span>
+                </div>
+            </div>
+            <div class="post-actions">
+                {% if session.get('current_uid') == post.author.uid %}
+                <a href="/user/post/{{ post.id }}/edit" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-edit"></i> 编辑
+                </a>
+                <button class="btn btn-danger btn-sm delete-post-btn" data-post-id="{{ post.id }}">
+                    <i class="fas fa-trash"></i> 删除
+                </button>
+                {% endif %}
+                {% if session.get('current_uid') and session.get('current_uid') != post.author.uid %}
+                <button class="btn btn-outline btn-sm report-btn" data-type="post" data-id="{{ post.id }}">
+                    <i class="fas fa-flag"></i> 举报
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 帖子内容 -->
+    <div class="post-detail-content">
+        <div class="post-body">
+            {{ post.content | safe }}
+        </div>
+    </div>
+
+    <!-- 帖子互动 -->
+    <div class="post-interaction">
+        <div class="interaction-stats">
+            <button class="interaction-btn like-btn {% if post.liked %}active{% endif %}" data-type="post" data-id="{{ post.id }}">
+                <i class="fas fa-heart"></i>
+                <span class="count">{{ post.likes or 0 }}</span>
+            </button>
+            <button class="interaction-btn favorite-btn {% if post.favorited %}active{% endif %}" data-type="post" data-id="{{ post.id }}">
+                <i class="fas fa-star"></i>
+                <span class="count">{{ post.favorites or 0 }}</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.post-detail-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 帖子头部 */
+.post-detail-header {
+    background: var(--bg-secondary);
+    border-radius: 12px 12px 0 0;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+}
+
+.post-detail-meta {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.post-detail-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.post-category {
+    background: var(--primary);
+    color: white !important;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.post-detail-title {
+    font-size: 2.2rem;
+    color: var(--text-primary);
+    margin-bottom: 25px;
+    line-height: 1.3;
+}
+
+.post-author-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.author-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--primary);
+}
+
+.author-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.author-details {
+    flex: 1;
+}
+
+.author-name {
+    color: var(--text-primary);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    display: inline-block;
+}
+
+.author-name:hover {
+    color: var(--primary);
+}
+
+.author-badge {
+    display: flex;
+    gap: 8px;
+}
+
+.badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge.level {
+    background: var(--primary);
+    color: white;
+}
+
+.post-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* 帖子内容 */
+.post-detail-content {
+    background: var(--bg-primary);
+    padding: 40px 30px;
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-bottom: none;
+}
+
+.post-body {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+}
+
+.post-body p {
+    margin-bottom: 1.5em;
+}
+
+.post-body h2, .post-body h3 {
+    margin: 1.5em 0 1em;
+}
+
+.post-body img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.post-body pre {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.post-body code {
+    background: var(--bg-secondary);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+/* 互动区域 */
+.post-interaction {
+    background: var(--bg-secondary);
+    padding: 20px 30px;
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+}
+
+.interaction-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.interaction-btn {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    padding: 8px 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.interaction-btn:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.interaction-btn.active {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+}
+
+.interaction-btn.active i {
+    color: white;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .post-detail-header {
+        padding: 20px;
+    }
+    
+    .post-detail-title {
+        font-size: 1.8rem;
+    }
+    
+    .post-author-info {
+        flex-wrap: wrap;
+    }
+    
+    .post-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .post-detail-content {
+        padding: 20px;
+    }
+    
+    .post-body {
+        font-size: 1rem;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    // 点赞按钮
+    document.querySelectorAll('.like-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            toggleLike(this.dataset.type, this.dataset.id);
+        });
+    });
+
+    // 收藏按钮
+    document.querySelectorAll('.favorite-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            toggleFavorite(this.dataset.type, this.dataset.id);
+        });
+    });
+
+    // 删除帖子按钮
+    document.querySelectorAll('.delete-post-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            deletePost(this.dataset.postId);
+        });
+    });
+});
+
+// 点赞
+async function toggleLike(type, id) {
+    if (!checkLogin()) return;
+    
+    try {
+        const response = await fetch('/user/like', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                target_type: type,
+                target_id: id
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const btn = event.currentTarget;
+            const countSpan = btn.querySelector('.count');
+            let count = parseInt(countSpan.textContent);
+            
+            if (data.liked) {
+                btn.classList.add('active');
+                count++;
+            } else {
+                btn.classList.remove('active');
+                count--;
+            }
+            
+            countSpan.textContent = count;
+        } else if (data.error === '请先切换到子账户') {
+            alert('请先切换到子账户');
+            window.location.href = '/user/link-uid';
+        }
+    } catch (error) {
+        console.error('点赞失败:', error);
+    }
+}
+
+// 收藏
+async function toggleFavorite(type, id) {
+    if (!checkLogin()) return;
+    
+    try {
+        const response = await fetch('/user/favorite', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                target_type: type,
+                target_id: id
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const btn = event.currentTarget;
+            const countSpan = btn.querySelector('.count');
+            let count = parseInt(countSpan.textContent);
+            
+            if (data.favorited) {
+                btn.classList.add('active');
+                count++;
+            } else {
+                btn.classList.remove('active');
+                count--;
+            }
+            
+            countSpan.textContent = count;
+        } else if (data.error === '请先切换到子账户') {
+            alert('请先切换到子账户');
+            window.location.href = '/user/link-uid';
+        }
+    } catch (error) {
+        console.error('收藏失败:', error);
+    }
+}
+
+// 删除帖子
+async function deletePost(postId) {
+    if (!confirm('确定要删除这篇帖子吗？此操作不可恢复！')) return;
+    
+    try {
+        const response = await fetch(`/user/post/${postId}/delete`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('帖子已删除');
+            window.location.href = '/user/posts';
+        } else {
+            alert(data.error || '删除失败');
+        }
+    } catch (error) {
+        console.error('删除帖子失败:', error);
+        alert('删除失败');
+    }
+}
+
+// 检查登录状态
+function checkLogin() {
+    {% if not session.get('current_uid') %}
+    alert('请先切换到子账户');
+    window.location.href = '/user/link-uid';
+    return false;
+    {% endif %}
+    return true;
+}
+</script>
+{% endblock %}

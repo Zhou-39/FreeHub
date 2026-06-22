@@ -1,0 +1,323 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}{{ thanks.name }} - 致谢详情{% endblock %}
+
+{% block content %}
+<div class="thank-detail-container">
+    <div class="thank-card">
+        <div class="thank-header">
+            <div class="thank-avatar">
+                <img class="avatar-img" 
+                     data-avatar-id="{{ thanks.avatar_id }}"
+                     src="/static/img/system/thanks/{{ thanks.avatar_id }}.png"
+                     alt="头像"
+                     style="width: 100%; height: 100%; object-fit: cover;">
+                <div class="avatar-fallback" style="display: none;">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+            <h1>{{ thanks.name }}</h1>
+            <span class="contributor-badge">贡献者</span>
+        </div>
+        
+        <div class="thank-body">
+            <div class="info-section">
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>{{ thanks.masked_contact() }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>{{ thanks.achievement_date.strftime('%Y年%m月%d日') if thanks.achievement_date else thanks.created_at.strftime('%Y年%m月%d日') }}</span>
+                </div>
+            </div>
+            
+            <div class="achievement-section">
+                <h2><i class="fas fa-trophy"></i> 贡献描述</h2>
+                <p>{{ thanks.achievement }}</p>
+            </div>
+            
+            <div class="message-section">
+                <i class="fas fa-quote-left"></i>
+                <p>感谢你为 FreeHub 社区做出的贡献！</p>
+                <i class="fas fa-quote-right"></i>
+            </div>
+            
+            <div class="action-buttons">
+                <a href="/thanks" class="btn btn-secondary">
+                    <i class="fas fa-list"></i> 返回致谢名单
+                </a>
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-home"></i> 返回首页
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.thank-detail-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.thank-card {
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px var(--shadow);
+}
+
+.thank-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    padding: 40px 20px;
+    text-align: center;
+    color: white;
+}
+
+.thank-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.thank-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-fallback {
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+}
+
+.thank-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+}
+
+.contributor-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.25);
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+}
+
+.thank-body {
+    padding: 30px;
+}
+
+.info-section {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.info-item i {
+    color: var(--primary);
+}
+
+.achievement-section h2 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.achievement-section p {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    font-size: 1rem;
+}
+
+.message-section {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 25px 0;
+    text-align: center;
+    position: relative;
+    border: 1px solid var(--border-color);
+}
+
+.message-section i:first-child {
+    color: var(--primary);
+    opacity: 0.5;
+    position: absolute;
+    top: 10px;
+    left: 15px;
+}
+
+.message-section i:last-child {
+    color: var(--primary);
+    opacity: 0.5;
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
+}
+
+.message-section p {
+    color: var(--text-primary);
+    font-style: italic;
+    margin: 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+@media (max-width: 480px) {
+    .info-section {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        justify-content: center;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+// 三级 fallback 头像加载器: PNG -> JPG -> 默认图标
+function loadDetailAvatar(imgElement, avatarId) {
+    if (!avatarId || avatarId === 0) {
+        showDetailDefaultAvatar(imgElement);
+        return;
+    }
+    
+    imgElement.dataset.attemptIndex = '0';
+    imgElement.dataset.avatarId = avatarId;
+    tryDetailFormat(imgElement);
+}
+
+function tryDetailFormat(imgElement) {
+    var avatarId = imgElement.dataset.avatarId;
+    var attemptIndex = parseInt(imgElement.dataset.attemptIndex);
+    
+    var formats = [
+        { ext: 'png' },
+        { ext: 'jpg' }
+    ];
+    
+    if (attemptIndex >= formats.length) {
+        showDetailDefaultAvatar(imgElement);
+        return;
+    }
+    
+    var format = formats[attemptIndex];
+    var imgUrl = "/static/img/system/thanks/" + avatarId + "." + format.ext;
+    
+    var testImg = new Image();
+    testImg.onload = function() {
+        imgElement.src = imgUrl;
+        imgElement.style.display = 'block';
+        if (imgElement.nextElementSibling) {
+            imgElement.nextElementSibling.style.display = 'none';
+        }
+    };
+    testImg.onerror = function() {
+        imgElement.dataset.attemptIndex = String(attemptIndex + 1);
+        tryDetailFormat(imgElement);
+    };
+    testImg.src = imgUrl;
+}
+
+function showDetailDefaultAvatar(imgElement) {
+    imgElement.style.display = 'none';
+    var fallbackDiv = imgElement.nextElementSibling;
+    if (fallbackDiv && fallbackDiv.classList.contains('avatar-fallback')) {
+        fallbackDiv.style.display = 'flex';
+        var icon = fallbackDiv.querySelector('i');
+        if (icon) {
+            icon.className = 'fas fa-user';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var img = document.querySelector('.avatar-img');
+    if (img) {
+        var avatarId = img.getAttribute('data-avatar-id');
+        var fallbackDiv = img.nextElementSibling;
+        img.style.display = 'block';
+        if (fallbackDiv) fallbackDiv.style.display = 'none';
+        loadDetailAvatar(img, avatarId);
+    }
+});
+</script>
+{% endblock %}

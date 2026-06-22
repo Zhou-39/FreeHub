@@ -1,0 +1,556 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}联系我们{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1>联系我们</h1>
+        <p class="page-subtitle">有任何问题或建议？欢迎告诉我</p>
+    </div>
+
+    <div class="contact-content">
+        <div class="contact-grid">
+            <div class="contact-info">
+                <h2>联系方式</h2>
+                <p>我是个人开发者，可能无法 7x24 回复，但每一条消息我都会认真看。</p>
+                
+                <div class="contact-methods">
+                    <div class="contact-method">
+                        <div class="method-icon"><i class="fas fa-envelope"></i></div>
+                        <div class="method-info">
+                            <h3>邮箱</h3>
+                            <p>3363499217@qq.com</p>
+                            <small>也可以通过下方表单发送</small>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-method">
+                        <div class="method-icon"><i class="fab fa-qq"></i></div>
+                        <div class="method-info">
+                            <h3>QQ</h3>
+                            <p>3363499217</p>
+                            <small>请备注「FreeHub」</small>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-method">
+                        <div class="method-icon"><i class="fab fa-github"></i></div>
+                        <div class="method-info">
+                            <h3>GitHub</h3>
+                            <p>在 GitHub 提交 Issue 或 PR</p>
+                            <small>项目地址：建设中</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tips-box">
+                    <h3><i class="fas fa-lightbulb"></i> 温馨提示</h3>
+                    <ul>
+                        <li>我是初三学生，可能无法立即回复，但保证会看</li>
+                        <li>反馈漏洞请在标题注明【漏洞】，可获得致谢</li>
+                        <li>一般问题会在 3-5 天内回复</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="contact-form-container">
+                <h2>发送消息</h2>
+                <form class="contact-form" id="contactForm" method="POST" action="/api/contact/send">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    
+                    <div class="form-group">
+                        <input type="text" class="input-field" id="name" name="name" placeholder=" " required>
+                        <label for="name" class="input-label">
+                            <i class="fas fa-user"></i> 姓名 / 昵称
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <input type="email" class="input-field" id="email" name="email" placeholder=" " required>
+                        <label for="email" class="input-label">
+                            <i class="fas fa-envelope"></i> 邮箱
+                        </label>
+                        <div class="field-hint">用于回复您（不会公开）</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <select class="select-field" id="subject" name="subject" required>
+                            <option value="" disabled selected>请选择主题</option>
+                            <option value="bug">🐛 报告漏洞</option>
+                            <option value="suggestion">💡 功能建议</option>
+                            <option value="question">❓ 使用问题</option>
+                            <option value="cooperation">🤝 合作/其他</option>
+                        </select>
+                        <label for="subject" class="select-label">
+                            <i class="fas fa-tag"></i> 主题
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <textarea class="textarea-field" id="message" name="message" placeholder=" " rows="5" required></textarea>
+                        <label for="message" class="textarea-label">
+                            <i class="fas fa-comment"></i> 消息内容
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="captcha-wrapper">
+                            <div class="captcha-input-wrapper">
+                                <input type="text" class="input-field" id="captcha" name="captcha" placeholder=" " maxlength="6" autocomplete="off" required>
+                                <label for="captcha" class="input-label">
+                                    <i class="fas fa-shield-alt"></i> 验证码
+                                </label>
+                            </div>
+                            <div class="captcha-image" id="refreshCaptcha">
+                                <img src="/captcha" alt="验证码" title="点击刷新">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="form-status"></div>
+                    
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <i class="fas fa-paper-plane"></i> 发送消息
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.page-header h1 {
+    font-size: 3rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 50px;
+    margin-bottom: 60px;
+}
+
+.contact-info h2,
+.contact-form-container h2 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-size: 1.6rem;
+}
+
+.contact-info > p {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.contact-methods {
+    margin-bottom: 30px;
+}
+
+.contact-method {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s;
+}
+
+.contact-method:hover {
+    transform: translateX(5px);
+}
+
+.method-icon {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.method-icon i {
+    color: white;
+    font-size: 1.2rem;
+}
+
+.method-info h3 {
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    font-size: 1rem;
+}
+
+.method-info p {
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.method-info small {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.tips-box {
+    background: rgba(67, 97, 238, 0.1);
+    border-left: 3px solid var(--primary);
+    padding: 15px;
+    border-radius: 12px;
+}
+
+.tips-box h3 {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.tips-box ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.tips-box li {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin: 5px 0;
+}
+
+.contact-form-container {
+    background: var(--bg-secondary);
+    padding: 30px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    position: relative;
+}
+
+.input-field,
+.textarea-field{
+    width: 100%;
+    padding: 16px 16px 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.select-field {
+    width: 100%;
+    padding: 16px 16px 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    outline: none;
+    text-align: center;  /* 添加这一行 */
+    text-align-last: center; /* 让下拉箭头也居中（可选） */
+}
+
+.textarea-field {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.input-field:focus,
+.textarea-field:focus,
+.select-field:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+}
+
+.input-label,
+.textarea-label,
+.select-label {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    pointer-events: none;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.input-field:focus + .input-label,
+.input-field:not(:placeholder-shown) + .input-label,
+.textarea-field:focus + .textarea-label,
+.textarea-field:not(:placeholder-shown) + .textarea-label,
+.select-field:focus + .select-label,
+.select-field:has(option:checked:not([value=""])) + .select-label {
+    top: 6px;
+    font-size: 0.7rem;
+    color: var(--primary);
+}
+
+.field-hint {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    padding-left: 4px;
+}
+
+.captcha-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.captcha-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.captcha-image {
+    flex-shrink: 0;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    height: 48px;
+    width: 130px;
+    transition: all 0.2s;
+}
+
+.captcha-image:hover {
+    border-color: var(--primary);
+    transform: scale(1.02);
+}
+
+.captcha-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.submit-btn {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 40px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    transform: none;
+    cursor: not-allowed;
+}
+
+#form-status {
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+#form-status.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+#form-status.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .contact-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    .page-header h1 {
+        font-size: 2rem;
+    }
+    .captcha-wrapper {
+        flex-direction: column;
+    }
+    .captcha-image {
+        width: 100%;
+        height: 45px;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('contactForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusDiv = document.getElementById('form-status');
+    const captchaImg = document.querySelector('.captcha-image img');
+    const refreshBtn = document.getElementById('refreshCaptcha');
+    
+    // 刷新验证码
+    function refreshCaptcha() {
+        if (captchaImg) {
+            captchaImg.src = '/captcha?' + Date.now();
+        }
+    }
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshCaptcha);
+    }
+    
+    // 表单提交
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // 禁用按钮，显示加载状态
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-spinner"></span> 发送中...';
+            statusDiv.innerHTML = '';
+            statusDiv.className = '';
+            
+            // 收集表单数据
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            try {
+                const response = await fetch('/api/contact/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusDiv.innerHTML = '✅ ' + (result.message || '消息已发送！我会尽快回复您。');
+                    statusDiv.className = 'success';
+                    form.reset();
+                    refreshCaptcha();
+                    
+                    // 重置浮动标签位置
+                    document.querySelectorAll('.input-field, .textarea-field').forEach(field => {
+                        field.dispatchEvent(new Event('input'));
+                    });
+                } else {
+                    statusDiv.innerHTML = '❌ ' + (result.error || '发送失败，请重试');
+                    statusDiv.className = 'error';
+                    refreshCaptcha();
+                    const captchaInput = document.getElementById('captcha');
+                    if (captchaInput) captchaInput.value = '';
+                }
+            } catch (err) {
+                console.error('提交失败:', err);
+                statusDiv.innerHTML = '❌ 网络错误，请稍后重试';
+                statusDiv.className = 'error';
+                refreshCaptcha();
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送消息';
+            }
+        });
+    }
+    
+    // 浮动标签效果
+    function handleFloatLabel() {
+        document.querySelectorAll('.input-field, .textarea-field, .select-field').forEach(field => {
+            if (field.value.trim() !== '') {
+                field.dispatchEvent(new Event('input'));
+            }
+            field.addEventListener('input', function() {
+                if (this.value.trim() !== '') {
+                    this.setAttribute('data-filled', 'true');
+                } else {
+                    this.removeAttribute('data-filled');
+                }
+            });
+        });
+        
+        // select 特殊处理
+        document.querySelectorAll('.select-field').forEach(select => {
+            if (select.value && select.value !== '') {
+                select.classList.add('has-value');
+            }
+            select.addEventListener('change', function() {
+                if (this.value && this.value !== '') {
+                    this.classList.add('has-value');
+                } else {
+                    this.classList.remove('has-value');
+                }
+            });
+        });
+    }
+    handleFloatLabel();
+});
+</script>
+{% endblock %}

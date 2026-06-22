@@ -1,0 +1,770 @@
+<!-- 举报模态框 -->
+<div class="modal hidden" id="reportModal">  <!-- 使用hidden类代替内联style -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal-container modal-container-sm" id="modalContainer">  <!-- 使用特定大小的类 -->
+        <div class="modal-header">
+            <h3><i class="fas fa-flag"></i> 举报内容</h3>
+            <button class="modal-close" id="closeReportModalBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="report-info" id="reportTargetInfo"></div>
+            
+            <div class="form-group">
+                <label>举报原因 <span class="required">*</span></label>
+                <div class="report-reasons" id="reportReasons">
+                    <!-- 动态加载举报原因 -->
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="reportDescription">详细描述（选填）</label>
+                <textarea id="reportDescription" class="form-control" rows="4" maxlength="500" placeholder="请提供更多细节，帮助我们更好地处理..."></textarea>
+                <div class="char-counter">
+                    <span id="descCount">0</span>/500
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelReportBtn">取消</button>
+            <button class="btn btn-danger" id="submitReportBtn">
+                <i class="fas fa-flag"></i> 提交举报
+            </button>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+/* 模态框基础样式 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.hidden {
+    display: none;  /* 隐藏状态 */
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-container {
+    position: relative;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease;
+}
+
+.modal-container-sm {
+    max-width: 500px;  /* 小尺寸模态框 */
+}
+
+.modal-container-md {
+    max-width: 700px;  /* 中等尺寸模态框（预留） */
+}
+
+.modal-container-lg {
+    max-width: 900px;  /* 大尺寸模态框（预留） */
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-primary);
+    border-radius: 16px 16px 0 0;
+}
+
+.modal-header h3 {
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-header h3 i {
+    color: var(--danger);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: var(--bg-primary);
+    border-radius: 0 0 16px 16px;
+}
+
+/* 举报原因样式 */
+.report-reasons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.report-reason-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--bg-primary);
+}
+
+.report-reason-item:hover {
+    background: var(--bg-secondary);
+    border-color: var(--primary);
+    transform: translateX(3px);
+}
+
+.report-reason-item.selected {
+    background: rgba(67, 97, 238, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.2);
+}
+
+.report-reason-item input[type="radio"] {
+    margin-top: 3px;
+    accent-color: var(--primary);
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.reason-content {
+    flex: 1;
+}
+
+.reason-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    font-size: 1rem;
+}
+
+.reason-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* 表单样式 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.required {
+    color: var(--danger);
+    margin-left: 3px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.char-counter {
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.char-counter span {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* 按钮样式 */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 38, 38, 0.3);
+}
+
+.btn-danger:disabled {
+    background: var(--text-secondary);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    opacity: 0.7;
+}
+
+.report-info {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.report-info p {
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* 加载状态 */
+.loading-spinner {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+}
+
+.loading-spinner i {
+    margin-right: 8px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state.error {
+    color: var(--danger);
+}
+
+/* 举报成功提示 */
+.report-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 2000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    max-width: 350px;
+}
+
+.report-toast.success {
+    background: var(--success);
+    border-left: 4px solid #2e7d32;
+}
+
+.report-toast.error {
+    background: var(--danger);
+    border-left: 4px solid #b71c1c;
+}
+
+.report-toast.info {
+    background: var(--info);
+    border-left: 4px solid #0b5e8a;
+}
+
+.report-toast.warning {
+    background: var(--warning);
+    color: #000;
+    border-left: 4px solid #b26a00;
+}
+
+.report-toast.fade-out {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .modal-container {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .modal-header {
+        padding: 15px 20px;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .modal-footer {
+        padding: 15px 20px;
+    }
+    
+    .report-reason-item {
+        padding: 10px 12px;
+    }
+    
+    .btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .report-toast {
+        left: 20px;
+        right: 20px;
+        max-width: none;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    // ================ 举报系统变量 ================
+    let currentReportType = null;
+    let currentReportId = null;
+    let selectedReason = null;
+
+    // 获取DOM元素
+    const reportModal = document.getElementById('reportModal');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const closeReportModalBtn = document.getElementById('closeReportModalBtn');
+    const cancelReportBtn = document.getElementById('cancelReportBtn');
+    const submitReportBtn = document.getElementById('submitReportBtn');
+    const reportDescription = document.getElementById('reportDescription');
+    const descCount = document.getElementById('descCount');
+
+    // ================ 显示举报模态框 ================
+    window.showReportModal = function(type, id) {
+        console.log('显示举报模态框', type, id);
+        
+        // 检查是否已登录
+        {% if not session.get('current_uid') %}
+        showReportToast('请先切换到子账户', 'warning');
+        setTimeout(() => {
+            window.location.href = '/user/link-uid';
+        }, 1500);
+        return;
+        {% endif %}
+        
+        currentReportType = type;
+        currentReportId = id;
+        selectedReason = null;
+        
+        // 设置目标信息
+        const typeNames = {
+            'post': '帖子',
+            'article': '文章',
+            'upload': '文件'
+        };
+        
+        const targetInfo = document.getElementById('reportTargetInfo');
+        if (targetInfo) {
+            targetInfo.innerHTML = `
+                <p><i class="fas fa-info-circle"></i> 您正在举报该${typeNames[type] || '内容'}，请选择举报原因：</p>
+            `;
+        }
+        
+        // 加载举报原因
+        loadReportReasons(type);
+        
+        // 显示模态框（移除hidden类）
+        if (reportModal) {
+            reportModal.classList.remove('hidden');
+        }
+        
+        // 重置描述字数
+        if (descCount) descCount.textContent = '0';
+        if (reportDescription) reportDescription.value = '';
+    };
+
+    // ================ 关闭举报模态框 ================
+    function closeReportModal() {
+        if (reportModal) {
+            reportModal.classList.add('hidden');  // 添加hidden类隐藏
+        }
+        currentReportType = null;
+        currentReportId = null;
+        selectedReason = null;
+        
+        if (reportDescription) reportDescription.value = '';
+        if (descCount) descCount.textContent = '0';
+    }
+
+    // 绑定关闭按钮事件
+    if (closeReportModalBtn) {
+        closeReportModalBtn.addEventListener('click', closeReportModal);
+    }
+
+    if (cancelReportBtn) {
+        cancelReportBtn.addEventListener('click', closeReportModal);
+    }
+
+    // 点击遮罩层关闭
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', closeReportModal);
+    }
+
+    // ================ 加载举报原因 ================
+    async function loadReportReasons(type) {
+        const container = document.getElementById('reportReasons');
+        if (!container) return;
+        
+        container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+        
+        try {
+            const response = await fetch(`/user/api/report/reasons?type=${type}`);
+            const data = await response.json();
+            
+            if (data.success && data.data && data.data.length > 0) {
+                container.innerHTML = data.data.map(reason => `
+                    <div class="report-reason-item" data-reason="${reason.code}">
+                        <input type="radio" name="reportReason" value="${reason.code}">
+                        <div class="reason-content">
+                            <div class="reason-title">${escapeHtml(reason.text)}</div>
+                            <div class="reason-desc">${escapeHtml(reason.description || '')}</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // 绑定举报原因点击事件
+                document.querySelectorAll('.report-reason-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        selectReason(this.dataset.reason);
+                    });
+                });
+            } else {
+                // 默认举报原因（如果API返回空）
+                const defaultReasons = getDefaultReasons(type);
+                container.innerHTML = defaultReasons.map(reason => `
+                    <div class="report-reason-item" data-reason="${reason.code}">
+                        <input type="radio" name="reportReason" value="${reason.code}">
+                        <div class="reason-content">
+                            <div class="reason-title">${escapeHtml(reason.text)}</div>
+                            <div class="reason-desc">${escapeHtml(reason.description || '')}</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // 绑定举报原因点击事件
+                document.querySelectorAll('.report-reason-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        selectReason(this.dataset.reason);
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('加载举报原因失败:', error);
+            // 出错时使用默认原因
+            const defaultReasons = getDefaultReasons(type);
+            container.innerHTML = defaultReasons.map(reason => `
+                <div class="report-reason-item" data-reason="${reason.code}">
+                    <input type="radio" name="reportReason" value="${reason.code}">
+                    <div class="reason-content">
+                        <div class="reason-title">${escapeHtml(reason.text)}</div>
+                        <div class="reason-desc">${escapeHtml(reason.description || '')}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 绑定举报原因点击事件
+            document.querySelectorAll('.report-reason-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    selectReason(this.dataset.reason);
+                });
+            });
+        }
+    }
+
+    // ================ 获取默认举报原因 ================
+    function getDefaultReasons(type) {
+        const commonReasons = [
+            { code: 'spam', text: '垃圾广告', description: '包含广告、推广等内容' },
+            { code: 'porn', text: '色情低俗', description: '包含色情、低俗内容' },
+            { code: 'illegal', text: '违法信息', description: '包含违法信息' },
+            { code: 'violence', text: '暴力血腥', description: '包含暴力、血腥内容' },
+            { code: 'other', text: '其他', description: '其他违规内容' }
+        ];
+        
+        const typeSpecificReasons = {
+            'post': [
+                { code: 'harassment', text: '人身攻击', description: '包含辱骂、攻击等内容' },
+                { code: 'misinformation', text: '虚假信息', description: '包含谣言、虚假信息' }
+            ],
+            'article': [
+                { code: 'plagiarism', text: '抄袭洗稿', description: '抄袭、洗稿行为' },
+                { code: 'misinformation', text: '虚假信息', description: '包含谣言、虚假信息' }
+            ],
+            'upload': [
+                { code: 'virus', text: '包含病毒', description: '文件包含病毒或恶意代码' },
+                { code: 'copyright', text: '侵犯版权', description: '侵犯他人版权' },
+                { code: 'fake', text: '虚假文件', description: '文件内容与描述不符' }
+            ]
+        };
+        
+        return [...commonReasons, ...(typeSpecificReasons[type] || [])];
+    }
+
+    // ================ 选择举报原因 ================
+    function selectReason(reasonCode) {
+        selectedReason = reasonCode;
+        
+        // 更新UI
+        document.querySelectorAll('.report-reason-item').forEach(item => {
+            const radio = item.querySelector('input[type="radio"]');
+            if (item.dataset.reason === reasonCode) {
+                radio.checked = true;
+                item.classList.add('selected');
+            } else {
+                radio.checked = false;
+                item.classList.remove('selected');
+            }
+        });
+    }
+
+    // ================ 提交举报 ================
+    if (submitReportBtn) {
+        submitReportBtn.addEventListener('click', submitReport);
+    }
+
+    async function submitReport() {
+        if (!selectedReason) {
+            showReportToast('请选择举报原因', 'error');
+            return;
+        }
+        
+        const description = reportDescription ? reportDescription.value.trim() : '';
+        
+        submitReportBtn.disabled = true;
+        const originalText = submitReportBtn.innerHTML;
+        submitReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 提交中...';
+        
+        try {
+            const response = await fetch('/user/api/report/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    target_type: currentReportType,
+                    target_id: currentReportId,
+                    reason: selectedReason,
+                    description: description
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showReportToast(data.message || '举报提交成功，感谢您的反馈', 'success');
+                closeReportModal();
+                
+                // 可选：禁用当前页面的举报按钮
+                const reportBtn = document.querySelector(`.report-btn[data-type="${currentReportType}"][data-id="${currentReportId}"]`);
+                if (reportBtn) {
+                    reportBtn.disabled = true;
+                    reportBtn.innerHTML = '<i class="fas fa-check"></i> 已举报';
+                }
+            } else {
+                throw new Error(data.error || '提交失败');
+            }
+        } catch (error) {
+            console.error('提交举报失败:', error);
+            showReportToast(error.message || '提交失败，请重试', 'error');
+        } finally {
+            submitReportBtn.disabled = false;
+            submitReportBtn.innerHTML = originalText;
+        }
+    }
+
+    // ================ 显示举报提示 ================
+    function showReportToast(message, type = 'info') {
+        // 移除已存在的toast
+        const existingToast = document.querySelector('.report-toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `report-toast ${type}`;
+        
+        const icon = {
+            'success': 'check-circle',
+            'error': 'exclamation-circle',
+            'warning': 'exclamation-triangle',
+            'info': 'info-circle'
+        }[type] || 'info-circle';
+        
+        toast.innerHTML = `
+            <i class="fas fa-${icon}"></i>
+            <span>${escapeHtml(message)}</span>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // ================ 举报字数统计 ================
+    if (reportDescription && descCount) {
+        reportDescription.addEventListener('input', function() {
+            descCount.textContent = this.value.length;
+        });
+    }
+
+    // ================ 检查是否已举报过 ================
+    window.checkReportStatus = async function(type, id, buttonSelector) {
+        try {
+            const response = await fetch(`/user/api/report/check/${type}/${id}`);
+            const data = await response.json();
+            
+            if (data.success && data.reported) {
+                const reportBtn = document.querySelector(buttonSelector);
+                if (reportBtn) {
+                    reportBtn.disabled = true;
+                    reportBtn.innerHTML = '<i class="fas fa-check"></i> 已举报';
+                    reportBtn.title = '您已举报过此内容';
+                }
+            }
+        } catch (error) {
+            console.error('检查举报状态失败:', error);
+        }
+    };
+
+    // ================ HTML转义 ================
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    console.log('举报模态框初始化完成');
+});
+</script>

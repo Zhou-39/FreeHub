@@ -1,0 +1,1119 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}悬赏详情 - FreeHub{% endblock %}
+
+{% block content %}
+<div class="detail-container" id="bountyDetailApp">
+    <!-- 加载中 -->
+    <div id="loadingSpinner" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i> 加载中...
+    </div>
+
+    <div id="bountyContent" style="display:none;">
+        <!-- 悬赏头部 -->
+        <div class="detail-header">
+            <div class="header-top">
+                <div class="bounty-status">
+                    <span id="statusBadge" class="status-badge active">进行中</span>
+                </div>
+                <div class="bounty-amount">
+                    <i class="fas fa-coins"></i>
+                    <span class="amount" id="totalPoints">0</span>
+                    <span>积分</span>
+                </div>
+            </div>
+            
+            <h1 class="bounty-title" id="bountyTitle"></h1>
+            
+            <div class="bounty-meta">
+                <div class="meta-item">
+                    <i class="fas fa-user-secret"></i>
+                    <span id="publisherName">加载中...</span>
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-calendar"></i>
+                    <span id="createdAt">加载中...</span>
+                </div>
+                <div class="meta-item" id="expiredAtWrap" style="display:none;">
+                    <i class="fas fa-hourglass-end"></i>
+                    <span>截止：<span id="expiredAt"></span></span>
+                </div>
+            </div>
+            
+            <div class="bounty-description" id="bountyDescription"></div>
+        </div>
+
+        <!-- 赏金池卡片 -->
+        <div class="pools-card">
+            <h3><i class="fas fa-chart-pie"></i> 赏金池</h3>
+            <div class="pools-grid">
+                <div class="pool-card static">
+                    <div class="pool-label">静态池</div>
+                    <div class="pool-value" id="staticPool">0</div>
+                    <div class="pool-desc">成交者保底奖励</div>
+                </div>
+                <div class="pool-card dynamic">
+                    <div class="pool-label">动态池</div>
+                    <div class="pool-value" id="dynamicPool">0</div>
+                    <div class="pool-desc">上传/查看激励</div>
+                </div>
+                <div class="pool-card total">
+                    <div class="pool-label">总赏金</div>
+                    <div class="pool-value" id="totalPool">0</div>
+                    <div class="pool-desc">悬赏总额</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 作品列表（发布者视图） -->
+        <div id="publisherUploads" style="display:none;" class="uploads-card">
+            <h3><i class="fas fa-file-upload"></i> 投稿作品 <span id="uploadCount">(0)</span></h3>
+            <div class="uploads-list" id="uploadsList"></div>
+        </div>
+
+        <!-- 作品列表（普通用户视图） -->
+        <div id="userUploads" style="display:none;" class="uploads-card">
+            <h3><i class="fas fa-file-upload"></i> 投稿作品 <span id="userUploadCount">(0)</span></h3>
+            <div class="uploads-list" id="userUploadsList"></div>
+        </div>
+
+        <!-- 上传表单（普通用户视图） -->
+        <div id="uploadFormCard" style="display:none;" class="upload-form-card">
+            <h3><i class="fas fa-cloud-upload-alt"></i> 投稿作品</h3>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>作品标题</label>
+                        <input type="text" id="uploadTitle" maxlength="200" class="input-field" placeholder="给您的作品起个标题">
+                    </div>
+                    <div class="form-group half">
+                        <label>作品说明</label>
+                        <input type="text" id="uploadDescription" class="input-field" placeholder="简单说明您的作品">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>作品文件 <span class="required">*</span></label>
+                    <div class="file-input-area">
+                        <input type="file" id="uploadFile" accept="*" class="file-input">
+                        <div class="file-input-placeholder">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>点击或拖拽选择文件</span>
+                        </div>
+                    </div>
+                    <div class="form-hint" id="uploadRewardHint" style="display:none;">
+                        <i class="fas fa-info-circle"></i>
+                        上传奖励：<strong id="uploadRewardAmount">0</strong> 积分
+                        <span id="privilegeBadge" class="privilege-badge" style="display:none;">✨ 特权上传者（前三名）</span>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="uploadSubmitBtn">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>上传作品</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 追加赏金（发布者视图） -->
+        <div id="appendCard" style="display:none;" class="append-card">
+            <h3><i class="fas fa-plus-circle"></i> 追加赏金</h3>
+            <div class="append-form">
+                <div class="input-group">
+                    <input type="number" id="appendPoints" min="10" step="10" value="100" class="input-field" placeholder="追加积分">
+                    <button class="btn btn-primary" id="appendBtn">追加</button>
+                </div>
+                <div class="form-hint">追加的积分将按6:4分配进入静态池和动态池</div>
+            </div>
+        </div>
+
+        <!-- 关闭悬赏（发布者视图） -->
+        <div id="closeCard" style="display:none;" class="close-card">
+            <h3><i class="fas fa-exclamation-triangle"></i> 悬赏已过期</h3>
+            <p>悬赏已达到最大上传人数后3天，请选择处理方式：</p>
+            <div class="close-actions">
+                <button class="btn btn-secondary" id="closeRefundBtn">退还95%给我</button>
+                <button class="btn btn-primary" id="closeDistributeBtn">5%分给上传者，剩余退还</button>
+            </div>
+        </div>
+
+        <!-- 成交信息 -->
+        <div id="winnerCard" style="display:none;" class="winner-card">
+            <h3><i class="fas fa-trophy"></i> 成交信息</h3>
+            <div class="winner-info">
+                <div class="winner-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="winner-details">
+                    <div class="winner-name" id="winnerName">用户</div>
+                    <div class="winner-time" id="completedAt"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+/* 样式保持不变，与之前完全相同 */
+.detail-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-secondary);
+}
+
+.loading-spinner i {
+    margin-right: 8px;
+}
+
+.detail-header {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.status-badge.success {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--info);
+}
+
+.status-badge.expired {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--danger);
+}
+
+.bounty-amount {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    background: rgba(250, 204, 21, 0.15);
+    padding: 6px 14px;
+    border-radius: 30px;
+}
+
+.bounty-amount i {
+    color: var(--warning);
+    font-size: 0.9rem;
+}
+
+.bounty-amount .amount {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--warning);
+}
+
+.bounty-title {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    line-height: 1.3;
+}
+
+.bounty-meta {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.meta-item i {
+    color: var(--primary);
+}
+
+.bounty-description {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    white-space: pre-wrap;
+    background: var(--bg-primary);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.pools-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.pools-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pools-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.pool-card {
+    text-align: center;
+    padding: 15px;
+    border-radius: 12px;
+    background: var(--bg-primary);
+}
+
+.pool-card.static {
+    border-left: 3px solid var(--success);
+}
+
+.pool-card.dynamic {
+    border-left: 3px solid var(--info);
+}
+
+.pool-card.total {
+    border-left: 3px solid var(--warning);
+}
+
+.pool-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.pool-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.pool-card.static .pool-value { color: var(--success); }
+.pool-card.dynamic .pool-value { color: var(--info); }
+.pool-card.total .pool-value { color: var(--warning); }
+
+.pool-desc {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+
+.uploads-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.uploads-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.uploads-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.upload-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.upload-item.selected {
+    border-color: var(--success);
+    background: rgba(74, 222, 128, 0.05);
+}
+
+.upload-info {
+    flex: 1;
+}
+
+.upload-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.upload-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.upload-meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.meta-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.meta-badge.viewed {
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--info);
+}
+
+.meta-badge.selected {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--success);
+}
+
+.upload-rewards {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.upload-rewards strong {
+    color: var(--text-primary);
+}
+
+.upload-rewards strong.total {
+    color: var(--warning);
+}
+
+.upload-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-icon.primary:hover {
+    background: var(--info);
+}
+
+.btn-icon.success:hover {
+    background: var(--success);
+}
+
+.upload-form-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.upload-form-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.file-input-area {
+    position: relative;
+}
+
+.file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.file-input-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 30px;
+    border: 2px dashed var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-primary);
+    transition: all 0.3s ease;
+}
+
+.file-input-placeholder i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.file-input-area:hover .file-input-placeholder {
+    border-color: var(--primary);
+    background: rgba(67, 97, 238, 0.05);
+}
+
+.privilege-badge {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    margin-left: 8px;
+}
+
+.append-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.append-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.input-group .input-field {
+    flex: 1;
+    max-width: 200px;
+}
+
+.close-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--warning);
+}
+
+.close-card h3 {
+    color: var(--warning);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.close-card p {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.close-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.winner-card {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.1), rgba(56, 189, 248, 0.1));
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.winner-card h3 {
+    color: var(--success);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.winner-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.winner-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.winner-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.winner-time {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .pools-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .upload-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .upload-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .input-group .input-field {
+        max-width: none;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+(function() {
+    'use strict';
+
+    const bountyId = {{ bounty_id }};
+
+    // DOM 元素
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const bountyContent = document.getElementById('bountyContent');
+    const statusBadge = document.getElementById('statusBadge');
+    const totalPoints = document.getElementById('totalPoints');
+    const bountyTitle = document.getElementById('bountyTitle');
+    const publisherName = document.getElementById('publisherName');
+    const createdAt = document.getElementById('createdAt');
+    const expiredAtWrap = document.getElementById('expiredAtWrap');
+    const expiredAt = document.getElementById('expiredAt');
+    const bountyDescription = document.getElementById('bountyDescription');
+    const staticPool = document.getElementById('staticPool');
+    const dynamicPool = document.getElementById('dynamicPool');
+    const totalPool = document.getElementById('totalPool');
+    const publisherUploads = document.getElementById('publisherUploads');
+    const userUploads = document.getElementById('userUploads');
+    const uploadsList = document.getElementById('uploadsList');
+    const userUploadsList = document.getElementById('userUploadsList');
+    const uploadCount = document.getElementById('uploadCount');
+    const userUploadCount = document.getElementById('userUploadCount');
+    const uploadFormCard = document.getElementById('uploadFormCard');
+    const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
+    const uploadTitle = document.getElementById('uploadTitle');
+    const uploadDescription = document.getElementById('uploadDescription');
+    const uploadFile = document.getElementById('uploadFile');
+    const uploadRewardHint = document.getElementById('uploadRewardHint');
+    const uploadRewardAmount = document.getElementById('uploadRewardAmount');
+    const privilegeBadge = document.getElementById('privilegeBadge');
+    const appendCard = document.getElementById('appendCard');
+    const appendBtn = document.getElementById('appendBtn');
+    const appendPoints = document.getElementById('appendPoints');
+    const closeCard = document.getElementById('closeCard');
+    const closeRefundBtn = document.getElementById('closeRefundBtn');
+    const closeDistributeBtn = document.getElementById('closeDistributeBtn');
+    const winnerCard = document.getElementById('winnerCard');
+    const winnerName = document.getElementById('winnerName');
+    const completedAt = document.getElementById('completedAt');
+
+    let bountyData = null;
+    let uploading = false;
+    let appending = false;
+
+    // ===== 加载详情 =====
+    async function loadDetail() {
+        loadingSpinner.style.display = 'block';
+        bountyContent.style.display = 'none';
+        try {
+            const resp = await fetch(`/user/api/bounty/${bountyId}/detail`);
+            const data = await resp.json();
+            if (data.success) {
+                bountyData = data.data;
+                renderBounty();
+                if (bountyData.can_upload) {
+                    calculateUploadReward();
+                }
+            } else {
+                alert(data.error || '加载失败');
+            }
+        } catch (e) {
+            console.error('加载失败', e);
+            alert('加载失败，请刷新重试');
+        } finally {
+            loadingSpinner.style.display = 'none';
+            bountyContent.style.display = 'block';
+        }
+    }
+
+    // ===== 渲染悬赏 =====
+    function renderBounty() {
+        const b = bountyData;
+
+        // 状态
+        const statusMap = {
+            'open': { class: 'active', text: '进行中' },
+            'closed': { class: 'success', text: '已完成' },
+            'expired': { class: 'expired', text: '已过期' }
+        };
+        const s = statusMap[b.status] || statusMap['open'];
+        statusBadge.className = 'status-badge ' + s.class;
+        statusBadge.textContent = s.text;
+
+        totalPoints.textContent = b.total_points;
+        bountyTitle.textContent = b.title;
+        publisherName.textContent = b.publisher?.nickname || '已注销';
+        createdAt.textContent = b.created_at;
+        if (b.expired_at) {
+            expiredAtWrap.style.display = 'block';
+            expiredAt.textContent = b.expired_at;
+        } else {
+            expiredAtWrap.style.display = 'none';
+        }
+        bountyDescription.textContent = b.description;
+
+        staticPool.textContent = b.static_pool;
+        dynamicPool.textContent = b.dynamic_pool;
+        totalPool.textContent = b.total_points;
+
+        // 作品列表
+        renderUploads();
+
+        // 显示/隐藏各模块
+        const isPublisher = b.is_publisher;
+        const isOpen = b.status === 'open';
+
+        // 发布者视图
+        if (isPublisher && b.uploads && b.uploads.length > 0) {
+            publisherUploads.style.display = 'block';
+        } else {
+            publisherUploads.style.display = 'none';
+        }
+
+        // 普通用户视图
+        if (!isPublisher && b.uploads && b.uploads.length > 0) {
+            userUploads.style.display = 'block';
+        } else {
+            userUploads.style.display = 'none';
+        }
+
+        // 上传表单
+        if (b.can_upload) {
+            uploadFormCard.style.display = 'block';
+        } else {
+            uploadFormCard.style.display = 'none';
+        }
+
+        // 追加赏金
+        if (isPublisher && isOpen) {
+            appendCard.style.display = 'block';
+        } else {
+            appendCard.style.display = 'none';
+        }
+
+        // 关闭悬赏（过期）
+        if (isPublisher && isOpen && b.expired_at && new Date(b.expired_at) < new Date()) {
+            closeCard.style.display = 'block';
+        } else {
+            closeCard.style.display = 'none';
+        }
+
+        // 成交信息
+        if (b.status === 'closed' && b.winner) {
+            winnerCard.style.display = 'block';
+            winnerName.textContent = b.winner.nickname || '用户';
+            completedAt.textContent = b.completed_at || '';
+        } else {
+            winnerCard.style.display = 'none';
+        }
+    }
+
+    // ===== 渲染作品列表 =====
+    function renderUploads() {
+        const b = bountyData;
+        if (!b.uploads || b.uploads.length === 0) {
+            uploadsList.innerHTML = '<div class="empty-state" style="padding:20px;text-align:center;color:var(--text-secondary);">暂无投稿</div>';
+            userUploadsList.innerHTML = '<div class="empty-state" style="padding:20px;text-align:center;color:var(--text-secondary);">暂无投稿</div>';
+            uploadCount.textContent = '(0)';
+            userUploadCount.textContent = '(0)';
+            return;
+        }
+
+        uploadCount.textContent = `(${b.uploads.length})`;
+        userUploadCount.textContent = `(${b.uploads.length})`;
+
+        // 发布者视图
+        let html = '';
+        for (const upload of b.uploads) {
+            const selectedClass = upload.status === 'selected' ? 'selected' : '';
+            html += `
+                <div class="upload-item ${selectedClass}">
+                    <div class="upload-info">
+                        <div class="upload-title">${escapeHtml(upload.title || '无标题')}</div>
+                        <div class="upload-desc">${escapeHtml(upload.description || '')}</div>
+                        <div class="upload-meta">
+                            ${upload.is_privileged ? '<span class="meta-badge">✨ 特权上传者</span>' : ''}
+                            ${upload.is_viewed ? '<span class="meta-badge viewed">👁️ 已查看</span>' : ''}
+                            ${upload.status === 'selected' ? '<span class="meta-badge selected">🏆 已选中</span>' : ''}
+                        </div>
+                        <div class="upload-rewards">
+                            <span>上传奖励：<strong>${upload.upload_reward}</strong></span>
+                            <span>查看奖励：<strong>${upload.view_reward || 0}</strong></span>
+                            <span>总奖励：<strong class="total">${upload.total_reward}</strong></span>
+                        </div>
+                    </div>
+                    <div class="upload-actions">
+                        ${upload.file_path && upload.is_viewed ? 
+                            `<a href="/user/api/bounty/${b.id}/uploads/${upload.id}/download" class="btn-icon" title="下载作品"><i class="fas fa-download"></i></a>` : ''}
+                        ${!upload.is_viewed && b.status === 'open' ? 
+                            `<button class="btn-icon primary" onclick="window.__bountyDetail.viewUpload(${upload.id})" title="查看"><i class="fas fa-eye"></i></button>` : ''}
+                        ${upload.status !== 'selected' && b.status === 'open' ? 
+                            `<button class="btn-icon success" onclick="window.__bountyDetail.selectWinner(${upload.id})" title="选择成交"><i class="fas fa-trophy"></i></button>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        uploadsList.innerHTML = html;
+
+        // 普通用户视图
+        let userHtml = '';
+        for (const upload of b.uploads) {
+            userHtml += `
+                <div class="upload-item">
+                    <div class="upload-info">
+                        <div class="upload-title">${escapeHtml(upload.title || '无标题')}</div>
+                        <div class="upload-desc">${escapeHtml(upload.description || '')}</div>
+                        <div class="upload-meta">
+                            ${upload.is_viewed ? '<span class="meta-badge viewed">👁️ 已被查看</span>' : '<span class="meta-badge">⏳ 待查看</span>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        userUploadsList.innerHTML = userHtml;
+    }
+
+    // ===== 计算上传奖励 =====
+    function calculateUploadReward() {
+        const uploadCount = bountyData.uploads ? bountyData.uploads.length : 0;
+        const isPrivileged = uploadCount < 3;
+        let reward = 0;
+        if (isPrivileged) {
+            reward = bountyData.total_points * 0.4 * 0.05;
+        } else {
+            reward = bountyData.dynamic_pool * 0.05;
+        }
+        uploadRewardAmount.textContent = reward.toFixed(2);
+        uploadRewardHint.style.display = 'block';
+        privilegeBadge.style.display = isPrivileged ? 'inline' : 'none';
+    }
+
+    // ===== 上传作品 =====
+    async function submitUpload() {
+        if (!uploadFile.files || uploadFile.files.length === 0) {
+            alert('请选择文件');
+            return;
+        }
+
+        uploading = true;
+        uploadSubmitBtn.disabled = true;
+        uploadSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
+
+        const formData = new FormData();
+        formData.append('file', uploadFile.files[0]);
+        formData.append('title', uploadTitle.value.trim());
+        formData.append('description', uploadDescription.value.trim());
+
+        try {
+            const resp = await fetch(`/user/api/bounty/${bountyData.id}/upload`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+            const data = await resp.json();
+            if (data.success) {
+                await loadDetail();
+                uploadTitle.value = '';
+                uploadDescription.value = '';
+                uploadFile.value = '';
+                alert('上传成功！获得 ' + data.upload_reward + ' 积分');
+            } else {
+                alert(data.error || '上传失败');
+            }
+        } catch (e) {
+            alert('上传失败：' + e.message);
+        } finally {
+            uploading = false;
+            uploadSubmitBtn.disabled = false;
+            uploadSubmitBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> 上传作品';
+        }
+    }
+
+    // ===== 查看作品 =====
+    async function viewUpload(uploadId) {
+        if (!confirm('查看将支付查看费，确定要继续吗？')) return;
+        try {
+            const resp = await fetch(`/user/api/bounty/${bountyData.id}/view/${uploadId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            });
+            const data = await resp.json();
+            if (data.success) {
+                await loadDetail();
+                alert('查看成功！');
+            } else {
+                alert(data.error);
+            }
+        } catch (e) {
+            alert('查看失败：' + e.message);
+        }
+    }
+
+    // ===== 选择成交者 =====
+    async function selectWinner(uploadId) {
+        if (!confirm('确定选择该作品为成交者吗？此操作不可撤销。')) return;
+        try {
+            const resp = await fetch(`/user/api/bounty/${bountyData.id}/select/${uploadId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            });
+            const data = await resp.json();
+            if (data.success) {
+                await loadDetail();
+                alert(data.message);
+            } else {
+                alert(data.error);
+            }
+        } catch (e) {
+            alert('操作失败：' + e.message);
+        }
+    }
+
+    // ===== 追加赏金 =====
+    async function appendBounty() {
+        const points = parseInt(appendPoints.value);
+        if (points < 10) {
+            alert('追加积分不能少于10');
+            return;
+        }
+        appending = true;
+        appendBtn.disabled = true;
+        appendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 追加中...';
+        try {
+            const resp = await fetch(`/user/api/bounty/${bountyData.id}/append`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ add_points: points })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                await loadDetail();
+                alert(data.message);
+                appendPoints.value = 100;
+            } else {
+                alert(data.error);
+            }
+        } catch (e) {
+            alert('追加失败：' + e.message);
+        } finally {
+            appending = false;
+            appendBtn.disabled = false;
+            appendBtn.textContent = '追加';
+        }
+    }
+
+    // ===== 关闭悬赏 =====
+    async function closeBounty(action) {
+        if (!confirm('确定要结束此悬赏吗？')) return;
+        try {
+            const resp = await fetch(`/user/api/bounty/${bountyData.id}/close`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ action: action })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                await loadDetail();
+                alert(data.message);
+            } else {
+                alert(data.error);
+            }
+        } catch (e) {
+            alert('操作失败：' + e.message);
+        }
+    }
+
+    // ===== 工具 =====
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ===== 绑定事件 =====
+    uploadSubmitBtn.addEventListener('click', submitUpload);
+    appendBtn.addEventListener('click', appendBounty);
+    closeRefundBtn.addEventListener('click', function() { closeBounty('refund'); });
+    closeDistributeBtn.addEventListener('click', function() { closeBounty('distribute'); });
+
+    // 暴露到全局
+    window.__bountyDetail = {
+        viewUpload: viewUpload,
+        selectWinner: selectWinner,
+        reload: loadDetail
+    };
+
+    // ===== 初始化 =====
+    loadDetail();
+
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,789 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}致谢管理 - 开发者工具{% endblock %}
+
+{% block content %}
+<div class="thanks-admin-container">
+    <div class="page-header">
+        <h1><i class="fas fa-heart"></i> 致谢管理</h1>
+        <p>管理贡献者名单，仅开发者可见</p>
+        <div class="developer-badge">
+            <i class="fas fa-code"></i> 开发者模式
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <button class="btn btn-primary" id="addThanksBtn">
+            <i class="fas fa-plus"></i> 添加致谢
+        </button>
+        <div class="filter-group">
+            <label>
+                <input type="checkbox" id="showHiddenCheckbox">
+                显示已隐藏
+            </label>
+        </div>
+        <button class="btn btn-outline" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> 刷新
+        </button>
+    </div>
+
+    <div class="thanks-table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>头像</th>
+                    <th>姓名</th>
+                    <th>联系方式</th>
+                    <th>贡献描述</th>
+                    <th>日期</th>
+                    <th>排序</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="thanksTableBody">
+                <tr>
+                    <td colspan="9" class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- 添加/编辑模态框 -->
+<div id="thanksModal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="modalTitle">添加致谢</h3>
+            <button class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="thanksForm">
+                <input type="hidden" id="editId" value="">
+                
+                <div class="form-group">
+                    <label for="name">姓名/昵称 <span class="required">*</span></label>
+                    <input type="text" id="name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact">联系方式（邮箱/QQ/微信）</label>
+                    <input type="text" id="contact" class="form-control" placeholder="将自动脱敏显示">
+                    <small class="form-hint">公开页面会自动脱敏（如 e****@gmail.com）</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="achievement">贡献描述 <span class="required">*</span></label>
+                    <textarea id="achievement" class="form-control" rows="3" required></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="avatarId">头像ID</label>
+                        <input type="number" id="avatarId" class="form-control" value="0" min="0">
+                        <small class="form-hint">对应 /static/img/system/thanks/{id}.png 或 .jpg</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="achievementDate">贡献日期</label>
+                        <input type="date" id="achievementDate" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sortOrder">排序权重</label>
+                        <input type="number" id="sortOrder" class="form-control" value="0">
+                        <small class="form-hint">越大越靠前</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="isVisible" checked>
+                            <span>立即显示</span>
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelModalBtn">取消</button>
+            <button class="btn btn-primary" id="saveThanksBtn">保存</button>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.thanks-admin-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+}
+
+.page-header h1 i {
+    color: var(--danger);
+    margin-right: 10px;
+}
+
+.developer-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filter-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.thanks-table-wrapper {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.data-table th {
+    padding: 12px 15px;
+    background: var(--bg-primary);
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.data-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.avatar-cell {
+    width: 60px;
+    text-align: center;
+}
+
+.avatar-wrapper {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
+}
+
+.avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.avatar-fallback {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.contact-masked {
+    font-family: monospace;
+    color: var(--text-muted);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-badge.visible {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.status-badge.hidden {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--danger);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-icon.delete:hover {
+    background: var(--danger);
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+}
+
+.btn-outline:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-container {
+    position: relative;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    color: var(--text-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.required {
+    color: var(--danger);
+}
+
+.loading-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 20px;
+}
+
+.page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.page-link.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+let currentPage = 1;
+let showHidden = false;
+
+// 三级 fallback 头像加载器
+function loadAdminAvatar(imgElement, avatarId) {
+    if (!avatarId || avatarId === 0) {
+        showAdminDefaultAvatar(imgElement);
+        return;
+    }
+    
+    imgElement.dataset.attemptIndex = '0';
+    imgElement.dataset.avatarId = avatarId;
+    tryAdminFormat(imgElement);
+}
+
+function tryAdminFormat(imgElement) {
+    var avatarId = imgElement.dataset.avatarId;
+    var attemptIndex = parseInt(imgElement.dataset.attemptIndex);
+    
+    var formats = [
+        { ext: 'png' },
+        { ext: 'jpg' }
+    ];
+    
+    if (attemptIndex >= formats.length) {
+        showAdminDefaultAvatar(imgElement);
+        return;
+    }
+    
+    var format = formats[attemptIndex];
+    var imgUrl = "/static/img/system/thanks/" + avatarId + "." + format.ext;
+    
+    var testImg = new Image();
+    testImg.onload = function() {
+        imgElement.src = imgUrl;
+        imgElement.style.display = 'block';
+        if (imgElement.nextElementSibling) {
+            imgElement.nextElementSibling.style.display = 'none';
+        }
+    };
+    testImg.onerror = function() {
+        imgElement.dataset.attemptIndex = String(attemptIndex + 1);
+        tryAdminFormat(imgElement);
+    };
+    testImg.src = imgUrl;
+}
+
+function showAdminDefaultAvatar(imgElement) {
+    imgElement.style.display = 'none';
+    var fallbackDiv = imgElement.nextElementSibling;
+    if (fallbackDiv && fallbackDiv.classList.contains('avatar-fallback')) {
+        fallbackDiv.style.display = 'flex';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadThanks();
+    
+    document.getElementById('showHiddenCheckbox')?.addEventListener('change', function() {
+        showHidden = this.checked;
+        currentPage = 1;
+        loadThanks();
+    });
+    
+    document.getElementById('refreshBtn')?.addEventListener('click', function() {
+        loadThanks();
+    });
+    
+    document.getElementById('addThanksBtn')?.addEventListener('click', function() {
+        openModal();
+    });
+    
+    document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
+    document.getElementById('cancelModalBtn')?.addEventListener('click', closeModal);
+    document.querySelector('.modal-overlay')?.addEventListener('click', closeModal);
+    document.getElementById('saveThanksBtn')?.addEventListener('click', saveThanks);
+});
+
+async function loadThanks() {
+    const tbody = document.getElementById('thanksTableBody');
+    tbody.innerHTML = '<td><td colspan="9" class="loading-state"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
+    
+    try {
+        let url = `/thanks/api/all?page=${currentPage}&per_page=20`;
+        if (showHidden) url += '&show_hidden=true';
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            renderThanksTable(data.data);
+            renderPagination(data);
+            
+            // 初始化所有头像
+            document.querySelectorAll('.avatar-img').forEach(function(img) {
+                var avatarId = img.getAttribute('data-avatar-id');
+                var fallbackDiv = img.nextElementSibling;
+                img.style.display = 'block';
+                if (fallbackDiv) fallbackDiv.style.display = 'none';
+                loadAdminAvatar(img, avatarId);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="9" class="loading-state"><i class="fas fa-exclamation-circle"></i> 加载失败</td></tr>';
+        }
+    } catch (error) {
+        console.error('加载失败:', error);
+        tbody.innerHTML = '<tr><td colspan="9" class="loading-state"><i class="fas fa-exclamation-circle"></i> 加载失败</td></tr>';
+    }
+}
+
+function renderThanksTable(thanksList) {
+    const tbody = document.getElementById('thanksTableBody');
+    tbody.innerHTML = '';
+    
+    if (thanksList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="loading-state"><i class="fas fa-heart"></i> 暂无致谢记录</td></tr>';
+        return;
+    }
+    
+    for (const t of thanksList) {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td>${t.id}</td>
+            <td class="avatar-cell">
+                <div class="avatar-wrapper">
+                    <img class="avatar-img" 
+                         data-avatar-id="${t.avatar_id || 0}"
+                         src="/static/img/system/thanks/${t.avatar_id || 0}.png"
+                         alt="avatar"
+                         style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                    <div class="avatar-fallback" style="display: none;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </td>
+            <td><strong>${escapeHtml(t.name)}</strong></td>
+            <td class="contact-masked">${escapeHtml(t.contact_masked)}</td>
+            <td class="achievement-text">${escapeHtml(t.achievement)}</td>
+            <td>${t.achievement_date || '-'}</td>
+            <td>${t.sort_order}</td>
+            <td>
+                <span class="status-badge ${t.is_visible ? 'visible' : 'hidden'}">
+                    ${t.is_visible ? '显示' : '隐藏'}
+                </span>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-icon" onclick="editThanks(${t.id})" title="编辑"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon" onclick="toggleThanks(${t.id})" title="切换显示"><i class="fas fa-${t.is_visible ? 'eye-slash' : 'eye'}"></i></button>
+                    <button class="btn-icon delete" onclick="deleteThanks(${t.id})" title="删除"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    }
+}
+
+function renderPagination(data) {
+    const container = document.getElementById('pagination');
+    if (data.total_pages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    if (data.has_prev) html += `<a class="page-link" onclick="goToPage(${data.page - 1})">‹</a>`;
+    
+    let startPage = Math.max(1, data.page - 2);
+    let endPage = Math.min(data.total_pages, data.page + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === data.page) {
+            html += `<span class="page-link active">${i}</span>`;
+        } else {
+            html += `<a class="page-link" onclick="goToPage(${i})">${i}</a>`;
+        }
+    }
+    
+    if (data.has_next) html += `<a class="page-link" onclick="goToPage(${data.page + 1})">›</a>`;
+    container.innerHTML = html;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    loadThanks();
+}
+
+let currentEditId = null;
+
+function openModal(thanks = null) {
+    const modal = document.getElementById('thanksModal');
+    document.getElementById('modalTitle').textContent = thanks ? '编辑致谢' : '添加致谢';
+    document.getElementById('editId').value = thanks?.id || '';
+    document.getElementById('name').value = thanks?.name || '';
+    document.getElementById('contact').value = thanks?.contact || '';
+    document.getElementById('achievement').value = thanks?.achievement || '';
+    document.getElementById('avatarId').value = thanks?.avatar_id || 0;
+    document.getElementById('achievementDate').value = thanks?.achievement_date || '';
+    document.getElementById('sortOrder').value = thanks?.sort_order || 0;
+    document.getElementById('isVisible').checked = thanks?.is_visible !== false;
+    currentEditId = thanks?.id || null;
+    modal.classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('thanksModal').classList.add('hidden');
+    currentEditId = null;
+}
+
+async function saveThanks() {
+    const name = document.getElementById('name').value.trim();
+    const achievement = document.getElementById('achievement').value.trim();
+    
+    if (!name || !achievement) {
+        alert('请填写姓名和贡献描述');
+        return;
+    }
+    
+    const data = {
+        name: name,
+        contact: document.getElementById('contact').value.trim(),
+        achievement: achievement,
+        avatar_id: parseInt(document.getElementById('avatarId').value) || 0,
+        achievement_date: document.getElementById('achievementDate').value || null,
+        sort_order: parseInt(document.getElementById('sortOrder').value) || 0,
+        is_visible: document.getElementById('isVisible').checked
+    };
+    
+    const saveBtn = document.getElementById('saveThanksBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+    
+    try {
+        let url = '/thanks/api/create';
+        let method = 'POST';
+        
+        if (currentEditId) {
+            url = `/thanks/api/${currentEditId}/update`;
+            method = 'PUT';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            closeModal();
+            loadThanks();
+        } else {
+            alert(result.error || '操作失败');
+        }
+    } catch (error) {
+        console.error('保存失败:', error);
+        alert('保存失败，请重试');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    }
+}
+
+async function editThanks(id) {
+    try {
+        const response = await fetch(`/thanks/api/all?page=1&per_page=100&show_hidden=true`);
+        const data = await response.json();
+        const thanks = data.data.find(t => t.id === id);
+        if (thanks) openModal(thanks);
+        else alert('记录不存在');
+    } catch (error) {
+        alert('获取详情失败');
+    }
+}
+
+async function toggleThanks(id) {
+    try {
+        const response = await fetch(`/thanks/api/${id}/toggle`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const data = await response.json();
+        if (data.success) loadThanks();
+        else alert(data.error || '操作失败');
+    } catch (error) {
+        alert('操作失败');
+    }
+}
+
+async function deleteThanks(id) {
+    if (!confirm('确定要删除这条致谢记录吗？')) return;
+    try {
+        const response = await fetch(`/thanks/api/${id}/delete`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+        const data = await response.json();
+        if (data.success) loadThanks();
+        else alert(data.error || '删除失败');
+    } catch (error) {
+        alert('删除失败');
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,652 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}邀请码管理{% endblock %}
+
+{% block content %}
+<div class="invite-codes-container">
+    <div class="page-header">
+        <h1><i class="fas fa-ticket-alt"></i> 邀请码管理</h1>
+        <p>创建和管理系统邀请码</p>
+        <button class="btn btn-primary" onclick="showCreateModal()">
+            <i class="fas fa-plus"></i> 生成新邀请码
+        </button>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.total if stats else 0 }}</div>
+                <div class="stat-label">总邀请码</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--success);">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.active if stats else 0 }}</div>
+                <div class="stat-label">有效</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--warning);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.used if stats else 0 }}</div>
+                <div class="stat-label">已使用</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 邀请码列表 -->
+    <div class="codes-list">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>邀请码</th>
+                    <th>类型</th>
+                    <th>目标角色</th>
+                    <th>最大使用</th>
+                    <th>已使用</th>
+                    <th>状态</th>
+                    <th>过期时间</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for code in codes %}
+                <tr>
+                    <td>{{ code.id }}</td>
+                    <td><code>{{ code.code }}</code></td>
+                    <td>
+                        <span class="badge {% if code.code_type == 'permanent' %}permanent{% else %}temporary{% endif %}">
+                            {{ '永久' if code.code_type == 'permanent' else '临时' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge role-{{ code.target_role }}">
+                            {{ code.target_role }}
+                        </span>
+                    </td>
+                    <td>{{ code.max_uses }}</td>
+                    <td>{{ code.used_count }}</td>
+                    <td>
+                        <span class="status-badge {% if code.is_active %}active{% else %}inactive{% endif %}">
+                            {{ '有效' if code.is_active else '无效' }}
+                        </span>
+                    </td>
+                    <td>{{ code.expires_at.strftime('%Y-%m-%d %H:%M') if code.expires_at else '永久' }}</td>
+                    <td>{{ code.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon" onclick="toggleStatus({{ code.id }})" title="切换状态">
+                                <i class="fas fa-{{ 'ban' if code.is_active else 'check' }}"></i>
+                            </button>
+                            <button class="btn-icon" onclick="copyCode('{{ code.code }}')" title="复制">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn-icon delete" onclick="deleteCode({{ code.id }})" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="empty-state">
+                        <i class="fas fa-ticket-alt"></i>
+                        <p>暂无邀请码</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    {% if pagination and pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}" class="page-link">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+        
+        {% for page in pagination.iter_pages() %}
+            {% if page %}
+                <a href="?page={{ page }}" class="page-link {% if page == pagination.page %}active{% endif %}">
+                    {{ page }}
+                </a>
+            {% else %}
+                <span class="page-link">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}" class="page-link">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 创建邀请码模态框 -->
+<div id="createModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>生成新邀请码</h3>
+            <button class="close-btn" onclick="closeCreateModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="createForm">
+                <div class="form-group">
+                    <label for="codeType">邀请码类型</label>
+                    <select id="codeType" class="input-field" required>
+                        <option value="temporary">临时</option>
+                        <option value="permanent">永久</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="targetRole">目标角色</label>
+                    <select id="targetRole" class="input-field" required>
+                        <option value="admin">管理员</option>
+                        <option value="superadmin">超级管理员</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxUses">最大使用次数</label>
+                    <input type="number" id="maxUses" class="input-field" value="1" min="1" max="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="expiresIn">有效期（小时，留空表示永久）</label>
+                    <input type="number" id="expiresIn" class="input-field" placeholder="例如：24">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">取消</button>
+                    <button type="submit" class="btn btn-primary" id="createBtn">
+                        <i class="fas fa-plus"></i> 生成
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.invite-codes-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.page-header .btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.codes-list {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+    margin-bottom: 30px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+}
+
+.data-table th {
+    background: var(--bg-primary);
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.data-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.data-table tr:hover td {
+    background: var(--bg-primary);
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge.permanent {
+    background: var(--success);
+    color: white;
+}
+
+.badge.temporary {
+    background: var(--warning);
+    color: black;
+}
+
+.badge.role-admin {
+    background: var(--info);
+    color: white;
+}
+
+.badge.role-superadmin {
+    background: var(--danger);
+    color: white;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.status-badge.inactive {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--danger);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-icon.delete:hover {
+    background: var(--danger);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px !important;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.page-link:hover {
+    background: var(--bg-secondary);
+}
+
+.page-link.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 30px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    color: var(--text-primary);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+@media (max-width: 768px) {
+    .page-header .btn {
+        position: static;
+        margin-top: 15px;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+let currentPage = 1;
+
+function showCreateModal() {
+    document.getElementById('createModal').style.display = 'block';
+}
+
+function closeCreateModal() {
+    document.getElementById('createModal').style.display = 'none';
+    document.getElementById('createForm').reset();
+}
+
+document.getElementById('createForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const codeType = document.getElementById('codeType').value;
+    const targetRole = document.getElementById('targetRole').value;
+    const maxUses = parseInt(document.getElementById('maxUses').value);
+    const expiresIn = document.getElementById('expiresIn').value;
+    
+    const createBtn = document.getElementById('createBtn');
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+    
+    try {
+        const response = await fetch('/{{ basic_url }}/invite-code/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                code_type: codeType,
+                target_role: targetRole,
+                max_uses: maxUses,
+                expires_in: expiresIn || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('邀请码生成成功！\n\n邀请码：' + data.code);
+            location.reload();
+        } else {
+            alert(data.error || '生成失败');
+        }
+    } catch (error) {
+        console.error('生成失败:', error);
+        alert('网络错误，请重试');
+    } finally {
+        createBtn.disabled = false;
+        createBtn.innerHTML = '<i class="fas fa-plus"></i> 生成';
+    }
+});
+
+async function toggleStatus(codeId) {
+    if (!confirm('确定要切换此邀请码的状态吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/{{ basic_url }}/invite-code/${codeId}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '{{ csrf_token }}'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || '操作失败');
+        }
+    } catch (error) {
+        alert('操作失败');
+    }
+}
+
+async function deleteCode(codeId) {
+    if (!confirm('确定要删除此邀请码吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/{{ basic_url }}/invite-code/${codeId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '{{ csrf_token }}'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || '删除失败');
+        }
+    } catch (error) {
+        alert('删除失败');
+    }
+}
+
+function copyCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        alert('邀请码已复制到剪贴板');
+    }).catch(() => {
+        alert('复制失败，请手动复制');
+    });
+}
+
+// 点击模态框外部关闭
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('createModal');
+    if (event.target === modal) {
+        closeCreateModal();
+    }
+});
+</script>
+{% endblock %}

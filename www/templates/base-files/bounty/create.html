@@ -1,0 +1,742 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}发布悬赏 - FreeHub{% endblock %}
+
+{% block content %}
+<div class="create-container" id="bountyApp">
+    <div class="page-header">
+        <h1><i class="fas fa-plus-circle"></i> 发布悬赏</h1>
+        <p>设置悬赏金额和规则，寻找开发者</p>
+        <div class="role-badge">
+            <i class="fas fa-user-secret"></i>
+            <span>当前身份：{{ uid_record.nickname if uid_record else '子账户' }}</span>
+        </div>
+    </div>
+
+    <div class="create-card">
+        <form id="bountyForm" enctype="multipart/form-data">
+            <!-- 标题 -->
+            <div class="form-group">
+                <label for="title">悬赏标题 <span class="required">*</span></label>
+                <input type="text" id="title" name="title" maxlength="200" class="input-field" placeholder="简明扼要地描述您的需求">
+                <div class="char-counter"><span id="titleCount">0</span>/200</div>
+            </div>
+
+            <!-- 描述 -->
+            <div class="form-group">
+                <label for="description">详细描述 <span class="required">*</span></label>
+                <textarea id="description" name="description" rows="6" maxlength="5000" class="input-field" placeholder="请详细描述您的需求，包括技术要求、交付标准、时间要求等"></textarea>
+                <div class="char-counter"><span id="descCount">0</span>/5000</div>
+            </div>
+
+            <!-- 总赏金 -->
+            <div class="form-group">
+                <label for="totalPoints">总赏金（积分） <span class="required">*</span></label>
+                <input type="number" id="totalPoints" name="total_points" min="50" max="100000" step="10" value="50" class="input-field">
+                <div class="form-hint">最低50积分，最高100000积分</div>
+                <div class="pools-preview">
+                    <div class="pool-preview static">
+                        <span>静态池（60%）</span>
+                        <strong id="staticPool">30.0</strong>
+                        <span>积分</span>
+                    </div>
+                    <div class="pool-preview dynamic">
+                        <span>动态池（40%）</span>
+                        <strong id="dynamicPool">20.0</strong>
+                        <span>积分</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 约束方式 -->
+            <div class="form-group">
+                <label>约束方式</label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="constraint_type" value="max_uploaders" checked>
+                        <span class="radio-custom"></span>
+                        <span>限制最大上传人数</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="constraint_type" value="min_total_points">
+                        <span class="radio-custom"></span>
+                        <span>限制最低总赏金</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 最大上传人数选项 -->
+            <div class="form-group" id="maxUploadersGroup">
+                <label for="maxUploaders">最大上传人数</label>
+                <input type="number" id="maxUploaders" name="constraint_value" min="1" max="50" value="10" class="input-field">
+                <div class="form-hint">达到人数后3天自动截止，无人成交可选择处理方式</div>
+            </div>
+
+            <!-- 最低总赏金选项 -->
+            <div class="form-group" id="minTotalPointsGroup" style="display:none;">
+                <label for="minTotalPoints">最低总赏金</label>
+                <input type="number" id="minTotalPoints" name="constraint_value_min" min="50" max="100000" value="100" class="input-field">
+                <div class="form-hint">上传作品总赏金达到此值后自动截止</div>
+            </div>
+
+            <!-- 无人成交处理 -->
+            <div class="form-group">
+                <label>无人成交处理</label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="no_deal_action" value="refund" checked>
+                        <span class="radio-custom"></span>
+                        <span>扣除5%后退还悬赏者</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="no_deal_action" value="distribute">
+                        <span class="radio-custom"></span>
+                        <span>扣除5%分配给所有上传者</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 附件 -->
+            <div class="form-group">
+                <label>附件（可选）</label>
+                <div class="upload-area-small" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>点击上传附件</span>
+                </div>
+                <input type="file" multiple id="fileInput" style="display:none;" accept=".zip,.rar,.7z,.pdf,.doc,.docx,.txt,.jpg,.png">
+                <div class="attachments-list" id="attachmentsList"></div>
+                <div class="form-hint">支持常见格式，单个文件不超过10MB</div>
+            </div>
+
+            <!-- 提交按钮 -->
+            <div class="form-actions">
+                <a href="{{ url_for('user.bounty_index') }}" class="btn btn-secondary">取消</a>
+                <button type="button" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>发布悬赏</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 说明卡片 -->
+    <div class="info-card">
+        <h3><i class="fas fa-info-circle"></i> 悬赏规则说明</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <i class="fas fa-chart-line"></i>
+                <div>
+                    <h4>赏金分配</h4>
+                    <p>总赏金按6:4分为静态池和动态池，静态池归成交者，动态池用于激励上传者</p>
+                </div>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-trophy"></i>
+                <div>
+                    <h4>上传奖励</h4>
+                    <p>前三名上传者获得总动态池5%，后续上传者获得当前动态池5%</p>
+                </div>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-eye"></i>
+                <div>
+                    <h4>查看奖励</h4>
+                    <p>发布者查看作品需支付当前动态池20%，上传者获得查看奖励</p>
+                </div>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-clock"></i>
+                <div>
+                    <h4>截止处理</h4>
+                    <p>达到最大上传人数后3天无人成交，可选择退款或分配</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.create-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-radius: 30px;
+    font-size: 0.9rem;
+}
+
+.create-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.required {
+    color: var(--danger);
+    margin-left: 3px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+textarea.input-field {
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.6;
+}
+
+.char-counter {
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.form-hint {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.pools-preview {
+    display: flex;
+    gap: 15px;
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 10px;
+}
+
+.pool-preview {
+    flex: 1;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.pool-preview strong {
+    display: block;
+    font-size: 1.2rem;
+    margin: 5px 0;
+}
+
+.pool-preview.static strong {
+    color: var(--success);
+}
+
+.pool-preview.dynamic strong {
+    color: var(--info);
+}
+
+.radio-group {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.radio-label:hover {
+    border-color: var(--primary);
+    background: rgba(67, 97, 238, 0.05);
+}
+
+.radio-label input {
+    display: none;
+}
+
+.radio-custom {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.radio-label input:checked + .radio-custom {
+    border-color: var(--primary);
+}
+
+.radio-label input:checked + .radio-custom::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+}
+
+.upload-area-small {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    border: 2px dashed var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--bg-primary);
+}
+
+.upload-area-small:hover {
+    border-color: var(--primary);
+    background: rgba(67, 97, 238, 0.05);
+}
+
+.upload-area-small i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.attachments-list {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.attachment-item i {
+    color: var(--primary);
+}
+
+.file-size {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+}
+
+.remove-attach {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 4px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.info-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 25px;
+    border: 1px solid var(--border-color);
+}
+
+.info-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    gap: 12px;
+}
+
+.info-item i {
+    font-size: 1.5rem;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.info-item h4 {
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    font-size: 1rem;
+}
+
+.info-item p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .create-card {
+        padding: 20px;
+    }
+    
+    .pools-preview {
+        flex-direction: column;
+    }
+    
+    .radio-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .radio-label {
+        width: 100%;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        justify-content: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+(function() {
+    'use strict';
+
+    // DOM 元素
+    const form = document.getElementById('bountyForm');
+    const title = document.getElementById('title');
+    const description = document.getElementById('description');
+    const totalPoints = document.getElementById('totalPoints');
+    const staticPool = document.getElementById('staticPool');
+    const dynamicPool = document.getElementById('dynamicPool');
+    const titleCount = document.getElementById('titleCount');
+    const descCount = document.getElementById('descCount');
+    const fileInput = document.getElementById('fileInput');
+    const uploadArea = document.getElementById('uploadArea');
+    const attachmentsList = document.getElementById('attachmentsList');
+    const submitBtn = document.getElementById('submitBtn');
+    const maxUploadersGroup = document.getElementById('maxUploadersGroup');
+    const minTotalPointsGroup = document.getElementById('minTotalPointsGroup');
+
+    let attachments = [];
+
+    // ===== 更新赏金池预览 =====
+    function updatePools() {
+        const total = parseFloat(totalPoints.value) || 0;
+        const staticVal = total * 0.6;
+        const dynamicVal = total * 0.4;
+        staticPool.textContent = staticVal.toFixed(1);
+        dynamicPool.textContent = dynamicVal.toFixed(1);
+    }
+
+    // ===== 字数统计 =====
+    function updateCounts() {
+        titleCount.textContent = title.value.length;
+        descCount.textContent = description.value.length;
+    }
+
+    // ===== 切换约束方式 =====
+    function toggleConstraint() {
+        const selected = document.querySelector('input[name="constraint_type"]:checked');
+        if (selected) {
+            if (selected.value === 'max_uploaders') {
+                maxUploadersGroup.style.display = 'block';
+                minTotalPointsGroup.style.display = 'none';
+                document.querySelector('input[name="constraint_value"]').value = 
+                    document.getElementById('maxUploaders').value || 10;
+            } else {
+                maxUploadersGroup.style.display = 'none';
+                minTotalPointsGroup.style.display = 'block';
+                document.querySelector('input[name="constraint_value"]').value = 
+                    document.getElementById('minTotalPoints').value || 100;
+            }
+        }
+    }
+
+    // ===== 文件处理 =====
+    function handleFiles(e) {
+        const files = Array.from(e.target.files);
+        for (const file of files) {
+            if (file.size > 10 * 1024 * 1024) {
+                alert('单个文件不能超过10MB');
+                continue;
+            }
+            if (!attachments.some(a => a.name === file.name && a.size === file.size)) {
+                attachments.push(file);
+            }
+        }
+        renderAttachments();
+        e.target.value = '';
+    }
+
+    function renderAttachments() {
+        if (attachments.length === 0) {
+            attachmentsList.innerHTML = '';
+            return;
+        }
+        let html = '';
+        attachments.forEach((file, idx) => {
+            const size = file.size < 1024 ? file.size + 'B' :
+                        file.size < 1024 * 1024 ? (file.size / 1024).toFixed(1) + 'KB' :
+                        (file.size / (1024 * 1024)).toFixed(1) + 'MB';
+            html += `
+                <div class="attachment-item">
+                    <i class="fas fa-paperclip"></i>
+                    <span>${escapeHtml(file.name)}</span>
+                    <span class="file-size">${size}</span>
+                    <button type="button" class="remove-attach" data-idx="${idx}">×</button>
+                </div>
+            `;
+        });
+        attachmentsList.innerHTML = html;
+        attachmentsList.querySelectorAll('.remove-attach').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const idx = parseInt(this.dataset.idx);
+                attachments.splice(idx, 1);
+                renderAttachments();
+            });
+        });
+    }
+
+    // ===== 简单的防XSS =====
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ===== 提交表单 =====
+    async function submitForm() {
+        // 1. 验证
+        const titleVal = title.value.trim();
+        const descVal = description.value.trim();
+        const totalVal = parseFloat(totalPoints.value);
+
+        if (!titleVal) {
+            alert('请填写悬赏标题');
+            title.focus();
+            return;
+        }
+        if (!descVal) {
+            alert('请填写详细描述');
+            description.focus();
+            return;
+        }
+        if (totalVal < 50) {
+            alert('总赏金不能低于50积分');
+            totalPoints.focus();
+            return;
+        }
+        if (totalVal > 100000) {
+            alert('总赏金不能超过100000积分');
+            totalPoints.focus();
+            return;
+        }
+
+        // 2. 禁用按钮
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发布中...';
+
+        // 3. 构建 FormData
+        const formData = new FormData();
+        formData.append('title', titleVal);
+        formData.append('description', descVal);
+        formData.append('total_points', totalVal);
+
+        const constraintType = document.querySelector('input[name="constraint_type"]:checked').value;
+        formData.append('constraint_type', constraintType);
+        
+        let constraintVal = 0;
+        if (constraintType === 'max_uploaders') {
+            constraintVal = parseInt(document.getElementById('maxUploaders').value) || 10;
+        } else {
+            constraintVal = parseInt(document.getElementById('minTotalPoints').value) || 100;
+        }
+        formData.append('constraint_value', constraintVal);
+
+        const noDealAction = document.querySelector('input[name="no_deal_action"]:checked').value;
+        formData.append('no_deal_action', noDealAction);
+
+        // 添加文件
+        for (const file of attachments) {
+            formData.append('files', file);
+        }
+
+        // 4. 发送请求
+        try {
+            const response = await fetch('/user/api/bounty/create', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.location.href = data.url || `/user/bounty/detail/${data.bounty_id}`;
+            } else {
+                alert(data.error || '发布失败，请重试');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发布悬赏';
+            }
+        } catch (error) {
+            console.error('发布悬赏失败:', error);
+            alert('发布失败：' + (error.message || '网络错误'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发布悬赏';
+        }
+    }
+
+    // ===== 绑定事件 =====
+    title.addEventListener('input', updateCounts);
+    description.addEventListener('input', updateCounts);
+    totalPoints.addEventListener('input', updatePools);
+
+    document.querySelectorAll('input[name="constraint_type"]').forEach(el => {
+        el.addEventListener('change', toggleConstraint);
+    });
+
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', handleFiles);
+
+    submitBtn.addEventListener('click', submitForm);
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitForm();
+    });
+
+    // ===== 初始化 =====
+    updatePools();
+    updateCounts();
+    toggleConstraint();
+
+    // 暴露到全局方便调试
+    window.__bountyApp = {
+        form: form,
+        attachments: attachments,
+        submit: submitForm
+    };
+
+})();
+</script>
+{% endblock %}

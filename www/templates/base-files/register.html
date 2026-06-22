@@ -1,0 +1,1104 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}
+    {% if role[0] == 'Admins' %}
+        管理员注册
+    {% elif role[0] == 'SuperAdmins' %}
+        超级管理员注册
+    {% elif role[0] == 'Owners' %}
+        所有者注册
+    {% else %}
+        用户注册
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-user-plus"></i>
+            <h1>
+                {% if role[0] == 'Admins' %}
+                    管理员注册
+                {% elif role[0] == 'SuperAdmins' %}
+                    超级管理员注册
+                {% elif role[0] == 'Owners' %}
+                    所有者注册
+                {% else %}
+                    用户注册
+                {% endif %}
+            </h1>
+            
+            <!-- 角色徽章 -->
+            {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+            <div class="role-badge 
+                {% if role[0] == 'Admins' %}admin
+                {% elif role[0] == 'SuperAdmins' %}superadmin
+                {% elif role[0] == 'Owners' %}owner
+                {% endif %}">
+                <i class="fas 
+                    {% if role[0] == 'Admins' %}fa-user-shield
+                    {% elif role[0] == 'SuperAdmins' %}fa-crown
+                    {% elif role[0] == 'Owners' %}fa-gem
+                    {% endif %}"></i>
+                <span>
+                    {% if role[0] == 'Admins' %}管理员
+                    {% elif role[0] == 'SuperAdmins' %}超级管理员
+                    {% elif role[0] == 'Owners' %}所有者
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
+            <!-- 邀请码提示 -->
+            {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+            <div class="invite-badge">
+                <i class="fas fa-ticket-alt"></i> 需要邀请码
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="auth-body">
+            <form id="registerForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <!-- 昵称输入框 -->
+                <div class="form-group">
+                    <input type="text" class="input-field" id="nickname" name="nickname" placeholder=" " autocomplete="off" required>
+                    <label for="nickname" class="input-label">
+                        <i class="fas fa-user"></i> 昵称
+                    </label>
+                    <div class="error-message" id="nickname-error">
+                        昵称只能包含字母和数字，长度4-20个字符
+                    </div>
+                    <div class="input-hint" id="nickname-hint"></div>
+                </div>
+
+                <!-- 邮箱输入框 - 对所有角色都显示（Owners 现在也有 email 字段） -->
+                <div class="form-group">
+                    <input type="email" class="input-field" id="email" name="email" placeholder=" " autocomplete="off" required>
+                    <label for="email" class="input-label">
+                        <i class="fas fa-envelope"></i> 邮箱地址
+                    </label>
+                    <div class="error-message" id="email-error">
+                        请输入有效的邮箱地址
+                    </div>
+                </div>
+
+                <!-- 邀请码输入框 - 仅管理员及以上角色 -->
+                {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+                <div class="form-group">
+                    <input type="text" class="input-field" id="inviteCode" name="invite_code" placeholder=" " autocomplete="off" required>
+                    <label for="inviteCode" class="input-label">
+                        <i class="fas fa-ticket-alt"></i> 邀请码
+                    </label>
+                    <div class="error-message" id="inviteCode-error">
+                        请输入有效的邀请码
+                    </div>
+                    <div class="input-hint" id="inviteCode-hint"></div>
+                </div>
+                {% endif %}
+
+                <!-- 密码输入框 -->
+                <div class="form-group">
+                    <input type="password" class="input-field" id="password" name="password" placeholder=" " required>
+                    <label for="password" class="input-label">
+                        <i class="fas fa-lock"></i> 密码
+                    </label>
+                    <button type="button" class="password-toggle" id="togglePassword">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                    <div class="password-strength" id="passwordStrength">
+                        <div class="strength-bar" id="strengthBar"></div>
+                    </div>
+                    <div class="error-message" id="password-error">
+                        密码必须包含大小写字母和数字，长度8-30个字符
+                    </div>
+                    <div class="input-hint" id="password-hint">
+                        至少8个字符，包含大小写字母和数字
+                    </div>
+                </div>
+
+                <!-- 确认密码输入框 -->
+                <div class="form-group">
+                    <input type="password" class="input-field" id="confirmPassword" name="confirmPassword" placeholder=" " required>
+                    <label for="confirmPassword" class="input-label">
+                        <i class="fas fa-lock"></i> 确认密码
+                    </label>
+                    <button type="button" class="password-toggle" id="toggleConfirmPassword">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                    <div class="error-message" id="confirmPassword-error">
+                        两次输入的密码不一致
+                    </div>
+                </div>
+
+                <!-- 验证码输入框 -->
+                <div class="form-group">
+                    <div class="captcha-group">
+                        <div class="captcha-input">
+                            <input type="text" class="input-field" id="captcha" name="captcha" placeholder=" " maxlength="6" autocomplete="off" required>
+                            <label for="captcha" class="input-label">
+                                <i class="fas fa-shield-alt"></i> 验证码
+                            </label>
+                        </div>
+                        <div class="captcha-image" id="refreshCaptchaBtn">
+                            <img src="/captcha" name="captcha" alt="验证码">
+                        </div>
+                    </div>
+                    <div class="error-message" id="captcha-error">
+                        请输入正确的验证码
+                    </div>
+                </div>
+
+                <!-- 用户协议勾选框 -->
+                <div class="form-group agreement-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreementCheck">
+                        <span class="checkmark"></span>
+                        <span class="agreement-text">
+                            我已阅读并同意
+                            {% if role[0] == 'Admins' %}
+                            <a href="/api/admin-guideline/1" target="_blank">《管理员准则》</a>
+                            {% elif role[0] == 'SuperAdmins' %}
+                            <a href="/api/superadmin-guideline/1" target="_blank">《超级管理员准则》</a>
+                            {% elif role[0] == 'Owners' %}
+                            <a href="/api/owner-guideline/1" target="_blank">《所有者准则》</a>
+                            {% else %}
+                            <a href="/api/user-agreement/1" target="_blank">《用户协议》</a>
+                            {% endif %}
+                        </span>
+                    </label>
+                </div>
+
+                <!-- 注册按钮 -->
+                <button type="button" class="btn btn-primary" id="registerBtn" disabled>
+                    <i class="fas fa-check-circle"></i> 注册
+                </button>
+
+                <!-- 邮箱验证提示 -->
+                <div class="email-notice">
+                    <p><i class="fas fa-info-circle"></i> 
+                        {% if role[0] == 'Owners' %}
+                            注册后可直接登录使用
+                        {% else %}
+                            注册后需要验证邮箱才能使用全部功能
+                        {% endif %}
+                    </p>
+                </div>
+            </form>
+
+            <div class="auth-footer">
+                <a href="/{{ basic_url }}/login"><i class="fas fa-sign-in-alt"></i> 已有账号? 登录</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    padding: 20px;
+}
+
+.auth-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px var(--shadow);
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px var(--shadow);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.auth-header i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.auth-header h1 {
+    font-size: 2rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+.role-badge.admin {
+    background: linear-gradient(135deg, #f97316, #fb923c);
+    color: white;
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+.role-badge.superadmin {
+    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    color: white;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.role-badge.owner {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    color: white;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.invite-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, var(--warning), #f97316);
+    color: white;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(250, 204, 21, 0.3);
+}
+
+.form-group {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 18px 16px 10px 16px;
+    border: none;
+    border-bottom: 2px solid var(--border-color);
+    background-color: transparent;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
+    color: var(--text-primary);
+}
+
+.input-field:focus {
+    border-bottom-color: var(--primary);
+}
+
+.input-label {
+    position: absolute;
+    top: 18px;
+    left: 16px;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    pointer-events: none;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.input-field:focus + .input-label,
+.input-field:not(:placeholder-shown) + .input-label {
+    top: 2px;
+    left: 12px;
+    font-size: 0.8rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.error-message {
+    display: none;
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-top: 6px;
+    padding-left: 5px;
+    animation: shake 0.3s ease;
+}
+
+.input-hint {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-top: 4px;
+    padding-left: 5px;
+    opacity: 0.7;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: var(--primary);
+}
+
+/* 密码强度指示器 */
+.password-strength {
+    height: 4px;
+    margin-top: 8px;
+    background: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.strength-bar {
+    height: 100%;
+    width: 0;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strength-weak {
+    background-color: var(--danger);
+    width: 33.33%;
+}
+
+.strength-medium {
+    background-color: var(--warning);
+    width: 66.66%;
+}
+
+.strength-strong {
+    background-color: var(--success);
+    width: 100%;
+}
+
+/* 验证码区域 */
+.captcha-group {
+    display: flex;
+    gap: 10px;
+}
+
+.captcha-input {
+    flex: 1;
+}
+
+.captcha-image {
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid var(--border-color);
+    width: 120px;
+    height: 40px;
+    background: var(--bg-primary);
+    transition: all 0.3s ease;
+}
+
+.captcha-image:hover {
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+.captcha-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 复选框样式 */
+.agreement-group {
+    margin: 20px 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-label input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: relative;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.checkbox-label:hover input ~ .checkmark {
+    border-color: var(--primary);
+}
+
+.checkbox-label input:checked ~ .checkmark {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.checkbox-label input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.agreement-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.agreement-text a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.agreement-text a:hover {
+    text-decoration: underline;
+}
+
+/* 注册按钮 */
+.btn-primary {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled {
+    background: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-primary i {
+    margin-right: 8px;
+}
+
+/* 邮箱提示 */
+.email-notice {
+    margin-top: 20px;
+    padding: 12px;
+    background: rgba(67, 97, 238, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(67, 97, 238, 0.2);
+    font-size: 0.85rem;
+    color: var(--primary);
+    text-align: center;
+}
+
+.email-notice i {
+    margin-right: 6px;
+}
+
+/* 页脚链接 */
+.auth-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 25px;
+    font-size: 0.9rem;
+}
+
+.auth-footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    border-radius: 20px;
+}
+
+.auth-footer a:hover {
+    color: var(--primary);
+    background: var(--bg-tertiary);
+    transform: translateY(-2px);
+}
+
+/* 加载动画 */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 抖动动画 */
+.shake-animation {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 30px 20px;
+    }
+    
+    .auth-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .captcha-group {
+        flex-direction: column;
+    }
+    
+    .captcha-image {
+        width: 100%;
+        height: 50px;
+    }
+    
+    .agreement-text {
+        font-size: 0.85rem;
+    }
+}
+
+/* 深色主题适配 */
+[data-theme="dark"] .auth-card {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .input-field {
+    background-color: transparent;
+}
+
+[data-theme="dark"] .auth-footer a:hover {
+    background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .email-notice {
+    background: rgba(67, 97, 238, 0.2);
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    fetchPBKDF2Params();
+    setupEventListeners();
+});
+
+let currentSalt = '';
+let currentIterations = 0;
+const userRole = '{{ role[0] }}';  // 'Users', 'Admins', 'SuperAdmins', 'Owners'
+
+async function fetchPBKDF2Params() {
+    try {
+        let apiUrl = '';
+        
+        // 根据角色选择不同的API端点
+        if (userRole === 'Admins') {
+            apiUrl = '/admin/api/pbkdf2-salt';
+        } else if (userRole === 'SuperAdmins') {
+            apiUrl = `{{ url_for('superadmin.get_superadmin_pbkdf2_salt') }}`;
+        } else if (userRole === 'Owners') {
+            apiUrl = `{{ url_for('owner.get_owner_pbkdf2_salt') }}`;
+        } else {
+            apiUrl = '/user/api/pbkdf2-salt';
+        }
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data.success) {
+            currentSalt = data.salt;
+            currentIterations = data.iterations;
+            console.log('获取安全参数成功');
+        } else {
+            console.error('获取安全参数失败:', data.error);
+            showNotification('安全初始化失败，请刷新页面重试', 'error');
+        }
+    } catch (error) {
+        console.error('获取安全参数异常:', error);
+        showNotification('网络错误，请检查连接后重试', 'error');
+    }
+}
+
+function setupEventListeners() {
+    const togglePassword = document.getElementById('togglePassword');
+    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+    const refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const nicknameInput = document.getElementById('nickname');
+    const emailInput = document.getElementById('email');
+    const captchaInput = document.getElementById('captcha');
+    const agreementCheck = document.getElementById('agreementCheck');
+    const registerBtn = document.getElementById('registerBtn');
+    
+    {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+    const inviteCodeInput = document.getElementById('inviteCode');
+    {% endif %}
+
+    // 密码可见性切换
+    if (togglePassword) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+        });
+    }
+
+    if (toggleConfirmPassword) {
+        toggleConfirmPassword.addEventListener('click', function() {
+            const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            confirmPasswordInput.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+        });
+    }
+
+    // 刷新验证码
+    if (refreshCaptchaBtn) {
+        refreshCaptchaBtn.addEventListener('click', refreshCaptcha);
+    }
+
+    // 实时验证
+    if (nicknameInput) {
+        nicknameInput.addEventListener('input', validateNickname);
+    }
+    
+    if (emailInput) {
+        emailInput.addEventListener('input', validateEmail);
+    }
+    
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            validatePassword();
+            updatePasswordStrength();
+            validatePasswordsMatch();
+        });
+    }
+    
+    if (confirmPasswordInput) {
+        confirmPasswordInput.addEventListener('input', validatePasswordsMatch);
+    }
+    
+    if (captchaInput) {
+        captchaInput.addEventListener('input', validateCaptcha);
+    }
+    
+    {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+    if (inviteCodeInput) {
+        inviteCodeInput.addEventListener('input', validateInviteCode);
+    }
+    {% endif %}
+
+    // 协议勾选启用注册按钮
+    if (agreementCheck && registerBtn) {
+        agreementCheck.addEventListener('change', function() {
+            registerBtn.disabled = !this.checked;
+        });
+    }
+
+    // 注册按钮点击
+    if (registerBtn) {
+        registerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            submitForm();
+        });
+    }
+}
+
+function validateNickname() {
+    const nickname = document.getElementById('nickname').value.trim();
+    const isValid = /^[a-zA-Z0-9]{4,20}$/.test(nickname);
+    const errorElement = document.getElementById('nickname-error');
+    const hintElement = document.getElementById('nickname-hint');
+
+    if (nickname.length === 0) {
+        if (errorElement) errorElement.style.display = 'none';
+        if (hintElement) hintElement.textContent = '';
+    } else if (!isValid) {
+        if (errorElement) errorElement.style.display = 'block';
+        if (hintElement) hintElement.textContent = '昵称只能包含字母和数字';
+    } else {
+        if (errorElement) errorElement.style.display = 'none';
+        if (hintElement) hintElement.textContent = '✓ 昵称可用';
+    }
+}
+
+function validateEmail() {
+    const email = document.getElementById('email').value.trim();
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const errorElement = document.getElementById('email-error');
+
+    if (email.length === 0) {
+        if (errorElement) errorElement.style.display = 'none';
+    } else if (!isValid) {
+        if (errorElement) errorElement.style.display = 'block';
+    } else {
+        if (errorElement) errorElement.style.display = 'none';
+    }
+}
+
+function validatePassword() {
+    const password = document.getElementById('password').value;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const isValid = password.length >= 8 && password.length <= 30 &&
+                  hasUpperCase && hasLowerCase && hasNumber;
+
+    const errorElement = document.getElementById('password-error');
+    
+    if (password.length === 0) {
+        if (errorElement) errorElement.style.display = 'none';
+    } else if (!isValid) {
+        if (errorElement) errorElement.style.display = 'block';
+    } else {
+        if (errorElement) errorElement.style.display = 'none';
+    }
+}
+
+function updatePasswordStrength() {
+    const password = document.getElementById('password').value;
+    const strengthBar = document.getElementById('strengthBar');
+    
+    if (!strengthBar) return;
+    
+    if (password.length === 0) {
+        strengthBar.className = 'strength-bar';
+        return;
+    }
+    
+    let strength = 0;
+    
+    // 长度检查
+    if (password.length >= 8) strength += 1;
+    if (password.length >= 12) strength += 1;
+    
+    // 字符类型检查
+    if (/[a-z]/.test(password)) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^a-zA-Z0-9]/.test(password)) strength += 1;
+    
+    // 设置强度等级
+    if (strength <= 2) {
+        strengthBar.className = 'strength-bar strength-weak';
+    } else if (strength <= 4) {
+        strengthBar.className = 'strength-bar strength-medium';
+    } else {
+        strengthBar.className = 'strength-bar strength-strong';
+    }
+}
+
+function validatePasswordsMatch() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const errorElement = document.getElementById('confirmPassword-error');
+
+    if (confirmPassword.length === 0) {
+        if (errorElement) errorElement.style.display = 'none';
+    } else if (password !== confirmPassword) {
+        if (errorElement) errorElement.style.display = 'block';
+    } else {
+        if (errorElement) errorElement.style.display = 'none';
+    }
+}
+
+function validateCaptcha() {
+    const captcha = document.getElementById('captcha').value;
+    const errorElement = document.getElementById('captcha-error');
+
+    if (captcha.length === 0) {
+        if (errorElement) errorElement.style.display = 'none';
+    } else if (captcha.length < 4) {
+        if (errorElement) errorElement.style.display = 'none';
+    } else {
+        if (errorElement) errorElement.style.display = 'none';
+    }
+}
+
+{% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+function validateInviteCode() {
+    const inviteCode = document.getElementById('inviteCode').value.trim();
+    const errorElement = document.getElementById('inviteCode-error');
+    const hintElement = document.getElementById('inviteCode-hint');
+
+    if (inviteCode.length === 0) {
+        if (errorElement) errorElement.style.display = 'none';
+        if (hintElement) hintElement.textContent = '';
+    } else {
+        // 这里可以添加实时验证邀请码的API调用
+        if (errorElement) errorElement.style.display = 'none';
+        if (hintElement) hintElement.textContent = '✓ 邀请码格式正确';
+    }
+}
+{% endif %}
+
+async function pbkdf2Hash(password, salt, iterations) {
+    const encoder = new TextEncoder();
+    const passwordBuffer = encoder.encode(password);
+    const saltBuffer = encoder.encode(salt);
+    
+    const key = await crypto.subtle.importKey(
+        'raw',
+        passwordBuffer,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveBits']
+    );
+    
+    const derivedBits = await crypto.subtle.deriveBits(
+        {
+            name: 'PBKDF2',
+            salt: saltBuffer,
+            iterations: iterations,
+            hash: 'SHA-256'
+        },
+        key,
+        256
+    );
+    
+    const hashArray = Array.from(new Uint8Array(derivedBits));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function submitForm() {
+    const nickname = document.getElementById('nickname').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const captcha = document.getElementById('captcha').value;
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    
+    {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+    const inviteCode = document.getElementById('inviteCode')?.value.trim();
+    {% endif %}
+
+    // 验证表单
+    const isNicknameValid = /^[a-zA-Z0-9]{4,20}$/.test(nickname);
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const isPasswordValid = password.length >= 8 && password.length <= 30 &&
+                          hasUpperCase && hasLowerCase && hasNumber;
+    const isConfirmPasswordValid = password === confirmPassword;
+    const isCaptchaValid = captcha.length >= 4;
+    
+    {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+    const isInviteCodeValid = inviteCode && inviteCode.length > 0;
+    {% endif %}
+
+    // 显示错误信息
+    let hasError = false;
+    
+    if (!isNicknameValid) {
+        const errorEl = document.getElementById('nickname-error');
+        if (errorEl) errorEl.style.display = 'block';
+        hasError = true;
+    }
+    
+    if (!isEmailValid) {
+        const errorEl = document.getElementById('email-error');
+        if (errorEl) errorEl.style.display = 'block';
+        hasError = true;
+    }
+    
+    if (!isPasswordValid) {
+        const errorEl = document.getElementById('password-error');
+        if (errorEl) errorEl.style.display = 'block';
+        hasError = true;
+    }
+    
+    if (!isConfirmPasswordValid) {
+        const errorEl = document.getElementById('confirmPassword-error');
+        if (errorEl) errorEl.style.display = 'block';
+        hasError = true;
+    }
+    
+    if (!isCaptchaValid) {
+        const errorEl = document.getElementById('captcha-error');
+        if (errorEl) errorEl.style.display = 'block';
+        hasError = true;
+    }
+    
+    {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+    if (!isInviteCodeValid) {
+        const errorEl = document.getElementById('inviteCode-error');
+        if (errorEl) errorEl.style.display = 'block';
+        hasError = true;
+    }
+    {% endif %}
+
+    if (hasError) {
+        return;
+    }
+    
+    if (!currentSalt) {
+        showNotification('安全参数未就绪，请稍后重试', 'error');
+        await fetchPBKDF2Params();
+        return;
+    }
+
+    const registerBtn = document.getElementById('registerBtn');
+    if (registerBtn) {
+        registerBtn.disabled = true;
+        registerBtn.innerHTML = '<span class="loading-spinner"></span> 注册中...';
+    }
+
+    try {
+        const hashedPassword = await pbkdf2Hash(password, currentSalt, currentIterations);
+        
+        const formData = new FormData();
+        formData.append('nickname', nickname);
+        formData.append('email', email);
+        formData.append('password', hashedPassword);
+        formData.append('salt', currentSalt);
+        formData.append('iterations', currentIterations.toString());
+        formData.append('captcha', captcha);
+        formData.append('csrf_token', csrfToken);
+        
+        {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+        formData.append('invite_code', inviteCode);
+        {% endif %}
+
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.success, 'success');
+            
+            // 根据角色跳转到不同的登录页面
+            if (userRole === 'Admins') {
+                window.location.href = '/admin/login';
+            } else if (userRole === 'SuperAdmins') {
+                window.location.href = `{{ url_for('superadmin.login') }}`;
+            } else if (userRole === 'Owners') {
+                window.location.href = `{{ url_for('owner.login') }}`;
+            } else {
+                window.location.href = '/user/login';
+            }
+        } else {
+            showNotification(data.error || '注册失败', 'error');
+            refreshCaptcha();
+            await fetchPBKDF2Params();
+        }
+    } catch (error) {
+        console.error('注册失败:', error);
+        showNotification('网络错误，请稍后重试', 'error');
+        await fetchPBKDF2Params();
+    } finally {
+        if (registerBtn) {
+            registerBtn.disabled = false;
+            registerBtn.innerHTML = '<i class="fas fa-check-circle"></i> 注册';
+        }
+    }
+}
+
+function refreshCaptcha() {
+    const img = document.querySelector('img[name="captcha"]');
+    if (img) {
+        img.src = '/captcha?' + new Date().getTime();
+    }
+    const captchaInput = document.getElementById('captcha');
+    if (captchaInput) {
+        captchaInput.value = '';
+    }
+}
+
+function showNotification(message, type = 'info') {
+    if (window.showNotification) {
+        window.showNotification(message, type);
+    } else {
+        alert(message);
+    }
+}
+
+// 初始时隐藏所有错误信息
+document.addEventListener('DOMContentLoaded', function() {
+    const errorElements = [
+        'nickname-error', 'email-error', 'password-error', 
+        'confirmPassword-error', 'captcha-error'
+    ];
+    
+    errorElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    
+    {% if role[0] in ['Admins', 'SuperAdmins', 'Owners'] %}
+    const inviteCodeError = document.getElementById('inviteCode-error');
+    if (inviteCodeError) {
+        inviteCodeError.style.display = 'none';
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

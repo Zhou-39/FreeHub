@@ -1,0 +1,803 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}文件预览 - {{ file.original_filename }}{% endblock %}
+
+{% block content %}
+<div class="preview-container">
+    <div class="preview-header">
+        <div class="file-info">
+            <h1>{{ file.original_filename }}</h1>
+            <div class="file-meta">
+                <span><i class="fas fa-file"></i> {{ file.file_size|filesizeformat }}</span>
+                <span><i class="fas fa-calendar"></i> {{ file.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                <span><i class="fas fa-download"></i> {{ file.downloads }} 次下载</span>
+                <span><i class="fas fa-globe"></i> {{ '公开' if file.is_public else '私密' }}</span>
+            </div>
+            <div class="uploader-info">
+                <i class="fas fa-user-secret"></i>
+                <a href="/user/uid-profile?uid={{ author.uid }}" class="uploader-link">
+                    {{ author.nickname if author else '未知用户' }}
+                </a>
+                <span class="uploader-level">Lv.{{ author.level if author else 0 }}</span>
+            </div>
+        </div>
+        <div class="file-actions">
+            <a href="/user/file/{{ file.id }}/view" class="btn btn-secondary" target="_blank">
+                <i class="fas fa-eye"></i> 查看
+            </a>
+            <a href="/user/file/{{ file.id }}/download" class="btn btn-primary">
+                <i class="fas fa-download"></i> 下载
+            </a>
+            {% if session.get('current_uid') == file.uid %}
+            <button class="btn btn-danger" id="deleteFileBtn" data-file-id="{{ file.id }}">
+                <i class="fas fa-trash"></i> 删除
+            </button>
+            {% endif %}
+            {% if session.get('current_uid') and session.get('current_uid') != file.uid %}
+            <button class="btn btn-outline btn-sm report-btn" data-type="upload" data-id="{{ file.id }}">
+                <i class="fas fa-flag"></i> 举报文件
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="preview-content">
+        {% if file.preview_info %}
+            <!-- 图片预览 -->
+            {% if file.file_category == 'image' %}
+            <div class="image-preview-container">
+                <div class="image-main-preview">
+                    <img src="/user/file/{{ file.id }}/view" alt="{{ file.original_filename }}" 
+                         class="preview-image" id="previewImage">
+                </div>
+                <div class="image-info-panel">
+                    <h3><i class="fas fa-info-circle"></i> 图片信息</h3>
+                    <table class="info-table">
+                        <tr>
+                            <td>原始尺寸:</td>
+                            <td>{{ file.preview_info.width }} x {{ file.preview_info.height }}</td>
+                        </tr>
+                        <tr>
+                            <td>格式:</td>
+                            <td>{{ file.preview_info.format }}</td>
+                        </tr>
+                        <tr>
+                            <td>色彩模式:</td>
+                            <td>{{ file.preview_info.mode }}</td>
+                        </tr>
+                        {% if file.preview_info.is_animated %}
+                        <tr>
+                            <td>动画帧数:</td>
+                            <td>{{ file.preview_info.n_frames }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+            
+            <!-- 图片预览控件 -->
+            <div class="image-controls">
+                <button class="control-btn" id="zoomInBtn" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="control-btn" id="zoomOutBtn" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="control-btn" id="resetZoomBtn" title="重置">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="control-btn" id="toggleFullscreenBtn" title="全屏">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <span class="zoom-level" id="zoomLevel">100%</span>
+            </div>
+            
+            <!-- 文本预览 -->
+            {% elif file.file_category == 'document' and file.preview_info.preview %}
+            <div class="text-preview-container">
+                <div class="text-header">
+                    <h3><i class="fas fa-file-alt"></i> 文件内容预览</h3>
+                    <div class="text-info">
+                        <span><i class="fas fa-code"></i> {{ file.preview_info.language }}</span>
+                        <span><i class="fas fa-sort-amount-up"></i> {{ file.preview_info.line_count }} 行</span>
+                        <span><i class="fas fa-font"></i> {{ file.preview_info.encoding }}</span>
+                    </div>
+                </div>
+                <div class="text-preview">
+                    <pre><code class="language-{{ file.preview_info.language }}">{{ file.preview_info.preview }}</code></pre>
+                    {% if file.preview_info.truncated %}
+                    <div class="preview-note">
+                        <i class="fas fa-info-circle"></i> 文件过长，只显示部分内容
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- PDF 预览 -->
+            {% elif file.file_category == 'document' and file.mime_type == 'application/pdf' %}
+            <div class="pdf-preview">
+                <iframe src="/user/file/{{ file.id }}/view" class="pdf-viewer" frameborder="0"></iframe>
+            </div>
+            
+            <!-- ZIP 预览 -->
+            {% elif file.file_category == 'archive' and file.preview_info.files %}
+            <div class="zip-preview">
+                <h3><i class="fas fa-file-archive"></i> ZIP 文件内容</h3>
+                <div class="zip-stats">
+                    共 {{ file.preview_info.total_files }} 个文件，总计 {{ file.preview_info.total_size|filesizeformat }}
+                </div>
+                <table class="zip-file-list">
+                    <thead>
+                        <tr>
+                            <th>文件名</th>
+                            <th>大小</th>
+                            <th>压缩后</th>
+                            <th>类型</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in file.preview_info.files %}
+                        <tr>
+                            <td>
+                                <i class="fas fa-{{ 'folder' if f.is_dir else 'file' }}"></i>
+                                {{ f.name }}
+                            </td>
+                            <td>{{ f.size|filesizeformat }}</td>
+                            <td>{{ f.compressed|filesizeformat if f.compressed else '-' }}</td>
+                            <td>{{ '文件夹' if f.is_dir else '文件' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if file.preview_info.truncated %}
+                <div class="preview-note">
+                    <i class="fas fa-info-circle"></i> 只显示前100个文件
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 字体预览 -->
+            {% elif file.file_category == 'font' %}
+            <div class="font-preview">
+                <h3><i class="fas fa-font"></i> 字体预览</h3>
+                <div class="font-sample">
+                    <div class="font-sample-text" style="font-family: '{{ file.original_filename }}';">
+                        ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>
+                        abcdefghijklmnopqrstuvwxyz<br>
+                        0123456789 !@#$%^&*()<br>
+                        汉字测试示例
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 无法预览 -->
+            {% else %}
+            <div class="no-preview">
+                <i class="fas fa-file"></i>
+                <h3>无法预览此文件</h3>
+                <p>该文件类型不支持在线预览</p>
+                <a href="/user/file/{{ file.id }}/download" class="btn btn-primary">
+                    <i class="fas fa-download"></i> 下载查看
+                </a>
+            </div>
+            {% endif %}
+        {% else %}
+            <!-- 无预览信息 -->
+            <div class="no-preview">
+                <i class="fas fa-file"></i>
+                <h3>暂无预览信息</h3>
+                <p>该文件没有生成预览</p>
+                <a href="/user/file/{{ file.id }}/download" class="btn btn-primary">
+                    <i class="fas fa-download"></i> 下载查看
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.preview-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.preview-header {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.file-info h1 {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    word-break: break-word;
+}
+
+.file-meta {
+    display: flex;
+    gap: 20px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.file-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.uploader-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.uploader-info i {
+    color: var(--primary);
+}
+
+.uploader-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.uploader-link:hover {
+    text-decoration: underline;
+}
+
+.uploader-level {
+    padding: 2px 6px;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.file-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.preview-content {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 25px;
+    border: 1px solid var(--border-color);
+    min-height: 500px;
+}
+
+/* 图片预览 */
+.image-preview-container {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+}
+
+.image-main-preview {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 500px;
+    overflow: auto;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    cursor: zoom-in;
+    transition: transform 0.3s ease;
+}
+
+.preview-image.zoomed {
+    cursor: zoom-out;
+    transform: scale(1.5);
+}
+
+.image-info-panel {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.image-info-panel h3 {
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.info-table td {
+    padding: 8px 0;
+    color: var(--text-secondary);
+}
+
+.info-table td:first-child {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.image-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    padding: 10px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+}
+
+.control-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.control-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.zoom-level {
+    margin-left: 10px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* 文本预览 */
+.text-preview-container {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.text-header {
+    padding: 15px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.text-header h3 {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.text-info {
+    display: flex;
+    gap: 15px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.text-info span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.text-preview {
+    padding: 20px;
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.text-preview pre {
+    margin: 0;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+/* PDF 预览 */
+.pdf-preview {
+    height: 700px;
+}
+
+.pdf-viewer {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: var(--bg-primary);
+}
+
+/* ZIP 预览 */
+.zip-preview {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.zip-preview h3 {
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zip-stats {
+    margin-bottom: 20px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    color: var(--text-secondary);
+}
+
+.zip-file-list {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.zip-file-list th {
+    text-align: left;
+    padding: 10px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.zip-file-list td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.zip-file-list tr:hover td {
+    background: var(--bg-secondary);
+}
+
+.zip-file-list i {
+    margin-right: 8px;
+    color: var(--primary);
+}
+
+/* 字体预览 */
+.font-preview {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.font-preview h3 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.font-sample {
+    padding: 30px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.font-sample-text {
+    font-size: 24px;
+    line-height: 1.8;
+    color: var(--text-primary);
+}
+
+/* 无法预览 */
+.no-preview {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.no-preview i {
+    font-size: 5rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.no-preview h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+
+.no-preview p {
+    color: var(--text-secondary);
+    margin-bottom: 25px;
+}
+
+.preview-note {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(67, 97, 238, 0.1);
+    border-radius: 6px;
+    color: var(--primary);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .preview-header {
+        flex-direction: column;
+    }
+    
+    .file-actions {
+        width: 100%;
+    }
+    
+    .file-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .image-preview-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .text-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .text-info {
+        flex-wrap: wrap;
+    }
+    
+    .zip-file-list {
+        font-size: 0.9rem;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    let currentZoom = 1;
+    const ZOOM_STEP = 0.1;
+    const MAX_ZOOM = 3;
+    const MIN_ZOOM = 0.5;
+
+    const previewImage = document.getElementById('previewImage');
+    const zoomLevel = document.getElementById('zoomLevel');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const resetZoomBtn = document.getElementById('resetZoomBtn');
+    const toggleFullscreenBtn = document.getElementById('toggleFullscreenBtn');
+    const deleteFileBtn = document.getElementById('deleteFileBtn');
+
+    // 图片预览控件
+    if (previewImage) {
+        previewImage.addEventListener('click', toggleImageZoom);
+    }
+
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', zoomIn);
+    }
+
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', zoomOut);
+    }
+
+    if (resetZoomBtn) {
+        resetZoomBtn.addEventListener('click', resetZoom);
+    }
+
+    if (toggleFullscreenBtn) {
+        toggleFullscreenBtn.addEventListener('click', toggleFullscreen);
+    }
+
+    // 删除文件
+    if (deleteFileBtn) {
+        deleteFileBtn.addEventListener('click', function() {
+            deleteFile(this.dataset.fileId);
+        });
+    }
+
+    // 键盘快捷键
+    document.addEventListener('keydown', function(e) {
+        if (!previewImage) return;
+        
+        if (e.ctrlKey && e.key === '+') {
+            e.preventDefault();
+            zoomIn();
+        } else if (e.ctrlKey && e.key === '-') {
+            e.preventDefault();
+            zoomOut();
+        } else if (e.ctrlKey && e.key === '0') {
+            e.preventDefault();
+            resetZoom();
+        }
+    });
+
+    // 全屏变化监听
+    document.addEventListener('fullscreenchange', function() {
+        const container = document.querySelector('.image-main-preview');
+        if (document.fullscreenElement) {
+            container.style.background = 'var(--bg-primary)';
+        } else {
+            container.style.background = '';
+        }
+    });
+
+    function adjustImageSize(img) {
+        const container = img.parentElement;
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+        
+        if (img.naturalWidth > containerWidth || img.naturalHeight > containerHeight) {
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '100%';
+        }
+    }
+
+    function toggleImageZoom() {
+        if (!previewImage) return;
+        
+        if (previewImage.classList.contains('zoomed')) {
+            previewImage.classList.remove('zoomed');
+            currentZoom = 1;
+        } else {
+            previewImage.classList.add('zoomed');
+            currentZoom = 1.5;
+        }
+        updateZoomLevel();
+    }
+
+    function zoomIn() {
+        if (!previewImage) return;
+        
+        if (currentZoom < MAX_ZOOM) {
+            currentZoom += ZOOM_STEP;
+            previewImage.style.transform = `scale(${currentZoom})`;
+            updateZoomLevel();
+        }
+    }
+
+    function zoomOut() {
+        if (!previewImage) return;
+        
+        if (currentZoom > MIN_ZOOM) {
+            currentZoom -= ZOOM_STEP;
+            previewImage.style.transform = `scale(${currentZoom})`;
+            updateZoomLevel();
+        }
+    }
+
+    function resetZoom() {
+        if (!previewImage) return;
+        
+        currentZoom = 1;
+        previewImage.style.transform = 'scale(1)';
+        previewImage.classList.remove('zoomed');
+        updateZoomLevel();
+    }
+
+    function updateZoomLevel() {
+        if (zoomLevel) {
+            zoomLevel.textContent = Math.round(currentZoom * 100) + '%';
+        }
+    }
+
+    function toggleFullscreen() {
+        const container = document.querySelector('.image-main-preview');
+        if (!container) return;
+        
+        if (!document.fullscreenElement) {
+            container.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    function deleteFile(fileId) {
+        if (!confirm('确定要删除这个文件吗？此操作不可恢复！')) {
+            return;
+        }
+        
+        fetch(`/user/file/${fileId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-Token': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('文件已删除', 'success');
+                setTimeout(() => {
+                    window.location.href = '/user/uploads';
+                }, 1500);
+            } else {
+                showNotification(data.error || '删除失败', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('删除失败', 'error');
+        });
+    }
+
+    function showNotification(message, type) {
+        if (window.showNotification) {
+            window.showNotification(message, type);
+        } else {
+            alert(message);
+        }
+    }
+});
+</script>
+{% endblock %}

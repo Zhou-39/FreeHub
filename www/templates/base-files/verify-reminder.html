@@ -1,0 +1,197 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}邮箱未验证 - FreeHub{% endblock %}
+
+{% block content %}
+<div class="verify-reminder-container">
+    <div class="verify-card">
+        <div class="verify-icon">
+            <i class="fas fa-envelope"></i>
+        </div>
+        <h1>请验证您的邮箱</h1>
+        <p>您的邮箱 <strong>{{ email }}</strong> 尚未验证。</p>
+        <p>请查收验证邮件并点击其中的链接完成验证。</p>
+        
+        <div class="verify-actions">
+            <button class="btn btn-primary" id="resendBtn">
+                <i class="fas fa-paper-plane"></i> 重新发送验证邮件
+            </button>
+            <a href="/user/logout" class="btn btn-secondary">
+                <i class="fas fa-sign-out-alt"></i> 退出登录
+            </a>
+        </div>
+        
+        <div class="verify-note">
+            <i class="fas fa-info-circle"></i>
+            没有收到邮件？请检查垃圾邮件箱，或确认您注册时填写的邮箱是否正确。
+            <br>
+            如果邮箱填写错误，请通过 <a href="/user/account-recover">账号恢复</a> 功能修改邮箱。
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.verify-reminder-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    padding: 20px;
+}
+
+.verify-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px var(--shadow);
+}
+
+.verify-icon i {
+    font-size: 4rem;
+    color: var(--warning);
+    margin-bottom: 20px;
+}
+
+.verify-card h1 {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+    margin-bottom: 15px;
+}
+
+.verify-card p {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+.verify-card p strong {
+    color: var(--primary);
+}
+
+.verify-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 30px 0 20px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.verify-note {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.verify-note a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.verify-note a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .verify-card {
+        padding: 25px 20px;
+    }
+    
+    .verify-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+document.getElementById('resendBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('resendBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+    
+    try {
+        const resp = await fetch('/user/resend-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            alert('验证邮件已重新发送，请查收');
+        } else {
+            alert(data.error || '发送失败');
+        }
+    } catch (err) {
+        alert('发送失败，请重试');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 重新发送验证邮件';
+    }
+});
+
+// 每3秒检查一次邮箱验证状态
+const checkInterval = setInterval(async () => {
+    try {
+        const resp = await fetch('/user/check-email-verified');
+        const data = await resp.json();
+        if (data.verified) {
+            clearInterval(checkInterval);
+            window.location.href = '/';
+        }
+    } catch (err) {
+        console.error('检查失败:', err);
+    }
+}, 3000);
+</script>
+{% endblock %}

@@ -1,0 +1,414 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}个人资料{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1><i class="fas fa-user-circle"></i> 用户资料</h1>
+    </div>
+
+    <div class="profile-card">
+        <div class="profile-info">
+            <div class="info-item">
+                <label><i class="fas fa-user"></i> 昵称：</label>
+                <span>{{ role[1].nickname }}</span>
+            </div>
+
+            <div class="info-item">
+                <label><i class="fas fa-envelope"></i> 邮箱：</label>
+                <span>{{ role[1].email }}</span>
+                {% if not role[1].email_verified %}
+                <span class="verification-badge unverified">
+                    <i class="fas fa-times-circle"></i> 未验证
+                </span>
+                <button class="btn-resend" id="resendVerificationBtn">
+                    <i class="fas fa-paper-plane"></i> 重新发送验证邮件
+                </button>
+                {% else %}
+                <span class="verification-badge verified">
+                    <i class="fas fa-check-circle"></i> 已验证
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="info-item">
+                <label><i class="fas fa-id-card"></i> 用户ID：</label>
+                <span>{{ role[1].id }}</span>
+            </div>
+
+            <div class="info-item">
+                <label><i class="fas fa-calendar-plus"></i> 注册时间：</label>
+                <span>{{ role[1].created_at if role[1].created_at else '待添加' }}</span>
+            </div>
+
+            <div class="info-item">
+                <label><i class="fas fa-clock"></i> 最后登录：</label>
+                <span>{{ role[1].last_login if role[1].last_login else '从未登录' }}</span>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <a href="/{{ basic_url }}/settings" class="btn btn-secondary">
+                <i class="fas fa-cog"></i> 编辑资料
+            </a>
+            <a href="/{{ basic_url }}/change-password" class="btn btn-secondary">
+                <i class="fas fa-key"></i> 修改密码
+            </a>
+        </div>
+    </div>
+
+    {% if uids %}
+    <div class="uids-section">
+        <a href="/{{ basic_url }}/link-uid"><h2><i class="fas fa-gamepad"></i> 关联UID</h2></a>
+        <div class="uids-grid">
+            {% for uid in uids %}
+            <div class="uid-card">
+                <div class="uid-header">
+                    <i class="fas fa-user-tag"></i>
+                    <h3>UID: {{ uid.uid }}</h3>
+                </div>
+                <div class="uid-details">
+                    <div class="uid-detail">
+                        <span class="label">昵称:</span>
+                        <span class="value">{{ uid.nickname }}</span>
+                    </div>
+                    <div class="uid-detail">
+                        <span class="label">等级:</span>
+                        <span class="value level-{{ uid.level }}">{{ uid.level }}</span>
+                    </div>
+                    <div class="uid-detail">
+                        <span class="label">积分:</span>
+                        <span class="value">{{ uid.points }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="no-uids">
+        <i class="fas fa-gamepad"></i>
+        <h3>暂无关联UID</h3>
+        <p>您还没有关联任何UID</p>
+        <a href="/{{ basic_url }}/link-uid" class="btn btn-primary">
+            <i class="fas fa-link"></i> 关联UID
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style nonce="{{ request.nonce }}">
+.profile-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.profile-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.profile-header i {
+    color: var(--primary);
+    margin-right: 15px;
+}
+
+.profile-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow);
+    padding: 30px;
+    margin-bottom: 30px;
+    border: 1px solid var(--border-color);
+}
+
+.profile-info {
+    margin-bottom: 25px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.info-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.info-item label {
+    font-weight: 600;
+    min-width: 120px;
+    margin-right: 20px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+}
+
+.info-item label i {
+    margin-right: 8px;
+    width: 16px;
+    color: var(--primary);
+}
+
+.info-item span {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.verification-badge {
+    margin-left: 15px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.verification-badge.verified {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.verification-badge.unverified {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-resend {
+    margin-left: 15px;
+    padding: 6px 12px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-resend:hover {
+    background-color: var(--secondary);
+    transform: translateY(-1px);
+}
+
+.profile-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.uids-section {
+    margin-top: 40px;
+}
+
+.uids-section h2 {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.uids-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.uid-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px var(--shadow);
+}
+
+.uid-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px var(--shadow);
+}
+
+.uid-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.uid-header i {
+    font-size: 1.5rem;
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.uid-header h3 {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.uid-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.uid-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.uid-detail .label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.uid-detail .value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.level-60 { color: var(--success); }
+.level-50 { color: var(--primary); }
+.level-40 { color: var(--warning); }
+
+.no-uids {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 2px dashed var(--border-color);
+}
+
+.no-uids i {
+    font-size: 4rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.no-uids h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.no-uids p {
+    color: var(--text-secondary);
+    margin-bottom: 25px;
+}
+
+@media (max-width: 768px) {
+    .profile-container {
+        padding: 15px;
+    }
+    
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .info-item label {
+        min-width: auto;
+        margin-right: 0;
+    }
+    
+    .profile-actions {
+        flex-direction: column;
+    }
+    
+    .uids-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const resendBtn = document.getElementById('resendVerificationBtn');
+    
+    if (resendBtn) {
+        resendBtn.addEventListener('click', function() {
+            fetch('/{{ basic_url }}/resend-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('验证邮件已重新发送，请检查您的邮箱');
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('发送失败，请稍后重试');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

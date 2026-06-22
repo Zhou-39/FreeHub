@@ -1,0 +1,302 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}发布文章{% endblock %}
+
+{% block content %}
+<div class="article-container">
+    <div class="article-card">
+        <div class="article-header">
+            <i class="fas fa-book"></i>
+            <h1>发布新文章</h1>
+            <p>当前身份：{{ uid.nickname }} (子账户)</p>
+        </div>
+
+        <div class="article-body">
+            <form id="articleForm">
+                <div class="form-group">
+                    <label for="title">文章标题 <span class="required">*</span></label>
+                    <input type="text" id="title" name="title" class="input-field" 
+                           placeholder="请输入文章标题" maxlength="50" required>
+                    <div class="char-counter">
+                        <span id="titleCount">0</span>/50
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="content">文章内容 <span class="required">*</span></label>
+                    <textarea id="content" name="content" class="input-field textarea-field" 
+                              placeholder="请输入文章内容..." rows="15" required></textarea>
+                    <div class="char-counter">
+                        <span id="contentCount">0</span>/50000
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">
+                        <i class="fas fa-times"></i> 取消
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-paper-plane"></i> 发布
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.article-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.article-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow);
+    padding: 30px;
+    border: 1px solid var(--border-color);
+}
+
+.article-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.article-header i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.article-header h1 {
+    font-size: 2rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.article-header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    background: var(--bg-primary);
+    padding: 5px 10px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.required {
+    color: var(--danger);
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.textarea-field {
+    resize: vertical;
+    min-height: 300px;
+    font-family: inherit;
+    line-height: 1.6;
+}
+
+.char-counter {
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+.btn-primary:disabled {
+    background: var(--text-secondary);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .article-card {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const titleInput = document.getElementById('title');
+    const contentInput = document.getElementById('content');
+    const titleCount = document.getElementById('titleCount');
+    const contentCount = document.getElementById('contentCount');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const form = document.getElementById('articleForm');
+
+    // 标题字数统计
+    if (titleInput && titleCount) {
+        titleInput.addEventListener('input', function() {
+            titleCount.textContent = this.value.length;
+        });
+    }
+
+    // 内容字数统计
+    if (contentInput && contentCount) {
+        contentInput.addEventListener('input', function() {
+            contentCount.textContent = this.value.length;
+        });
+    }
+
+    // 取消按钮
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            if (confirm('确定要取消发布吗？所有内容将丢失。')) {
+                history.back();
+            }
+        });
+    }
+
+    // 表单提交
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const title = titleInput.value.trim();
+            const content = contentInput.value.trim();
+
+            if (!title) {
+                alert('请输入文章标题');
+                return;
+            }
+
+            if (title.length > 50) {
+                alert('标题不能超过50个字符');
+                return;
+            }
+
+            if (!content) {
+                alert('请输入文章内容');
+                return;
+            }
+
+            if (content.length > 50000) {
+                alert('内容不能超过50000个字符');
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发布中...';
+            }
+
+            try {
+                const response = await fetch('/user/article/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        content: content
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('文章发布成功！');
+                    window.location.href = `/user/article/${data.arid}`;
+                } else {
+                    alert(data.error || '发布失败');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发布';
+                    }
+                }
+            } catch (error) {
+                console.error('发布失败:', error);
+                alert('网络错误，请稍后重试');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发布';
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,463 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}我的悬赏 - FreeHub{% endblock %}
+
+{% block content %}
+<div class="my-bounties-container" id="myBountiesApp">
+    <div class="page-header">
+        <h1><i class="fas fa-list"></i> 我的悬赏</h1>
+        <p>管理您发布的所有悬赏任务</p>
+        <div class="role-badge">
+            <i class="fas fa-user-secret"></i>
+            <span>{{ uid_record.nickname if uid_record else '子账户' }}</span>
+        </div>
+    </div>
+
+    <!-- Tab 切换按钮 -->
+    <div class="tabs">
+        <button class="tab-btn active" id="tabPublished" onclick="switchTab('published')">我发布的</button>
+        <button class="tab-btn" id="tabParticipated" onclick="switchTab('participated')">我参与的</button>
+    </div>
+
+    <!-- 我发布的悬赏 Tab -->
+    <div id="publishedPanel" class="bounty-list"></div>
+
+    <!-- 我参与的悬赏 Tab -->
+    <div id="participatedPanel" class="bounty-list" style="display:none;"></div>
+
+    <!-- 加载状态 -->
+    <div id="loadingSpinner" class="loading-spinner" style="display:none;">
+        <i class="fas fa-spinner fa-spin"></i> 加载中...
+    </div>
+</div>
+
+<style nonce="{{ request.nonce }}">
+.my-bounties-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-radius: 30px;
+    font-size: 0.9rem;
+}
+
+.tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-secondary);
+}
+
+.loading-spinner i {
+    margin-right: 8px;
+}
+
+.bounty-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.bounty-item {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.bounty-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 20px var(--shadow);
+}
+
+.bounty-item.participated {
+    border-left: 3px solid var(--info);
+}
+
+.bounty-info {
+    flex: 1;
+}
+
+.bounty-info h3 {
+    margin-bottom: 8px;
+}
+
+.bounty-info h3 a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 1.1rem;
+}
+
+.bounty-info h3 a:hover {
+    color: var(--primary);
+}
+
+.bounty-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat i {
+    color: var(--primary);
+}
+
+.upload-title {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.status-badge.success {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--info);
+}
+
+.status-badge.expired {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--danger);
+}
+
+.status-badge.viewed {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--info);
+}
+
+.status-badge.pending {
+    background: rgba(250, 204, 21, 0.2);
+    color: var(--warning);
+}
+
+.btn-view {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-view:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    border: 2px dashed var(--border-color);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+@media (max-width: 768px) {
+    .bounty-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .bounty-stats {
+        gap: 10px;
+    }
+    
+    .btn-view {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script nonce="{{ request.nonce }}">
+(function() {
+    'use strict';
+
+    let currentTab = 'published';
+
+    const publishedPanel = document.getElementById('publishedPanel');
+    const participatedPanel = document.getElementById('participatedPanel');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const tabPublished = document.getElementById('tabPublished');
+    const tabParticipated = document.getElementById('tabParticipated');
+
+    // ===== 切换 Tab =====
+    window.switchTab = function(tab) {
+        if (currentTab === tab) return;
+        currentTab = tab;
+
+        tabPublished.classList.toggle('active', tab === 'published');
+        tabParticipated.classList.toggle('active', tab === 'participated');
+
+        if (tab === 'published') {
+            publishedPanel.style.display = 'flex';
+            participatedPanel.style.display = 'none';
+            if (!publishedPanel.dataset.loaded) {
+                loadPublished();
+            }
+        } else {
+            publishedPanel.style.display = 'none';
+            participatedPanel.style.display = 'flex';
+            if (!participatedPanel.dataset.loaded) {
+                loadParticipated();
+            }
+        }
+    };
+
+    // ===== 加载我发布的 =====
+    async function loadPublished() {
+        loadingSpinner.style.display = 'block';
+        try {
+            const resp = await fetch('/user/api/bounty/my/published');
+            const data = await resp.json();
+            if (data.success) {
+                renderPublished(data.data);
+                publishedPanel.dataset.loaded = 'true';
+            }
+        } catch (e) {
+            console.error('加载失败', e);
+            publishedPanel.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>加载失败，请刷新重试</p></div>';
+        } finally {
+            loadingSpinner.style.display = 'none';
+        }
+    }
+
+    // ===== 渲染我发布的 =====
+    function renderPublished(tasks) {
+        if (!tasks || tasks.length === 0) {
+            publishedPanel.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-gavel"></i>
+                    <p>暂无发布的悬赏</p>
+                    <a href="{{ url_for('user.bounty_create_page') }}" class="btn btn-primary">发布悬赏</a>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        for (const task of tasks) {
+            const statusMap = {
+                'open': { class: 'active', text: '进行中' },
+                'closed': { class: 'success', text: '已完成' },
+                'expired': { class: 'expired', text: '已过期' }
+            };
+            const s = statusMap[task.status] || statusMap['open'];
+
+            html += `
+                <div class="bounty-item">
+                    <div class="bounty-info">
+                        <h3><a href="/user/bounty/detail/${task.id}">${escapeHtml(task.title)}</a></h3>
+                        <div class="bounty-stats">
+                            <span class="stat"><i class="fas fa-coins"></i> ${task.total_points} 积分</span>
+                            <span class="stat"><i class="fas fa-cloud-upload-alt"></i> ${task.upload_count} / ${task.max_uploaders || '不限'}</span>
+                            <span class="stat"><i class="fas fa-clock"></i> ${task.created_at}</span>
+                        </div>
+                    </div>
+                    <div class="bounty-status">
+                        <span class="status-badge ${s.class}">${s.text}</span>
+                    </div>
+                    <a href="/user/bounty/detail/${task.id}" class="btn-view">查看详情 <i class="fas fa-arrow-right"></i></a>
+                </div>
+            `;
+        }
+        publishedPanel.innerHTML = html;
+    }
+
+    // ===== 加载我参与的 =====
+    async function loadParticipated() {
+        loadingSpinner.style.display = 'block';
+        try {
+            const resp = await fetch('/user/api/bounty/my/uploads');
+            const data = await resp.json();
+            if (data.success) {
+                renderParticipated(data.data);
+                participatedPanel.dataset.loaded = 'true';
+            }
+        } catch (e) {
+            console.error('加载失败', e);
+            participatedPanel.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>加载失败，请刷新重试</p></div>';
+        } finally {
+            loadingSpinner.style.display = 'none';
+        }
+    }
+
+    // ===== 渲染我参与的 =====
+    function renderParticipated(uploads) {
+        if (!uploads || uploads.length === 0) {
+            participatedPanel.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>暂无参与的悬赏</p>
+                    <a href="{{ url_for('user.bounty_index') }}" class="btn btn-primary">去投稿</a>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        for (const upload of uploads) {
+            let statusHtml = '';
+            if (upload.status === 'selected') {
+                statusHtml = '<span class="status-badge success">已选中</span>';
+            } else if (upload.is_viewed) {
+                statusHtml = '<span class="status-badge viewed">已查看</span>';
+            } else {
+                statusHtml = '<span class="status-badge pending">待查看</span>';
+            }
+
+            html += `
+                <div class="bounty-item participated">
+                    <div class="bounty-info">
+                        <h3><a href="/user/bounty/detail/${upload.bounty_id}">${escapeHtml(upload.bounty_title)}</a></h3>
+                        <div class="bounty-stats">
+                            <span class="stat"><i class="fas fa-coins"></i> 投稿奖励：${upload.total_reward}</span>
+                            <span class="stat"><i class="fas fa-eye"></i> ${upload.is_viewed ? '已查看' : '未查看'}</span>
+                            <span class="stat"><i class="fas fa-clock"></i> ${upload.created_at}</span>
+                        </div>
+                        <div class="upload-title">${escapeHtml(upload.title)}</div>
+                    </div>
+                    <div class="bounty-status">${statusHtml}</div>
+                    <a href="/user/bounty/detail/${upload.bounty_id}" class="btn-view">查看详情 <i class="fas fa-arrow-right"></i></a>
+                </div>
+            `;
+        }
+        participatedPanel.innerHTML = html;
+    }
+
+    // ===== 工具 =====
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ===== 初始化 =====
+    loadPublished();
+
+})();
+</script>
+{% endblock %}

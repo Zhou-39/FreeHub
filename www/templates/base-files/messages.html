@@ -1,0 +1,353 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}私信中心 - {{ uid.nickname }}{% endblock %}
+
+{% block styles %}
+<style nonce="{{ request.nonce }}">
+.messages-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+}
+
+.messages-header {
+    margin-bottom: 20px;
+}
+
+.messages-header h1 {
+    font-size: 2rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.messages-header h1 i {
+    color: var(--primary);
+}
+
+.messages-layout {
+    display: flex;
+    flex: 1;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    min-height: 0;
+}
+
+.conversations-sidebar {
+    width: 350px;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+}
+
+.sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-header h3 {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.conversation-filters {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.filter-chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-chip.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.conversations-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.conversation-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    margin-bottom: 5px;
+    position: relative;
+}
+
+.conversation-item:hover {
+    background: var(--bg-secondary);
+}
+
+.conversation-item.unread {
+    background: rgba(67, 97, 238, 0.05);
+}
+
+.conversation-avatar {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.conversation-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+
+.friend-badge-icon { color: var(--success); }
+.bounty-badge-icon { color: var(--warning); }
+
+.conversation-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.conversation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.conversation-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.conversation-time {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.conversation-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.preview-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.unread-badge {
+    background: var(--danger);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    min-width: 20px;
+    text-align: center;
+}
+
+.message-default-view {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+}
+
+.default-content {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.default-content i {
+    font-size: 5rem;
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.empty-conversations {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .messages-layout {
+        flex-direction: column;
+    }
+    .conversations-sidebar {
+        width: 100%;
+        height: 250px;
+    }
+    .message-default-view {
+        display: none;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="messages-container">
+    <div class="messages-header">
+        <h1><i class="fas fa-envelope"></i> 私信中心</h1>
+    </div>
+
+    <div class="messages-layout">
+        <div class="conversations-sidebar">
+            <div class="sidebar-header">
+                <h3>对话列表</h3>
+            </div>
+            <div class="conversation-filters">
+                <button class="filter-chip active" data-filter="all">全部</button>
+                <button class="filter-chip" data-filter="friend">好友</button>
+                <button class="filter-chip" data-filter="bounty">悬赏</button>
+            </div>
+            <div class="conversations-list" id="conversationsList">
+                <div class="empty-conversations"><i class="fas fa-comments"></i><p>加载中...</p></div>
+            </div>
+        </div>
+
+        <div class="message-default-view">
+            <div class="default-content">
+                <i class="fas fa-envelope-open-text"></i>
+                <h2>选择对话开始交流</h2>
+                <p>点击左侧会话，或去其他用户资料页发送私信</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ request.nonce }}">
+let currentFilter = 'all';
+
+async function loadConversations() {
+    const container = document.getElementById('conversationsList');
+    container.innerHTML = '<div class="empty-conversations"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>';
+    
+    try {
+        const response = await fetch('/user/api/messages/conversations');
+        const data = await response.json();
+        
+        if (!data.success || !data.data) {
+            container.innerHTML = '<div class="empty-conversations"><i class="fas fa-comments"></i><p>暂无对话</p></div>';
+            return;
+        }
+        
+        let filtered = data.data;
+        if (currentFilter === 'friend') {
+            filtered = filtered.filter(c => c.is_friend === true);
+        } else if (currentFilter === 'bounty') {
+            filtered = filtered.filter(c => c.conversation_type === 'bounty_temp');
+        }
+        
+        if (filtered.length === 0) {
+            const messages = { all: '暂无对话', friend: '暂无好友对话', bounty: '暂无悬赏会话' };
+            container.innerHTML = `<div class="empty-conversations"><i class="fas fa-comments"></i><p>${messages[currentFilter]}</p></div>`;
+            return;
+        }
+        
+        container.innerHTML = filtered.map(conv => {
+            let badgeIcon = '';
+            let badgeClass = '';
+            if (conv.is_friend) {
+                badgeIcon = '<i class="fas fa-user-friends friend-badge-icon"></i>';
+                badgeClass = 'friend-badge-icon';
+            } else if (conv.conversation_type === 'bounty_temp') {
+                badgeIcon = '<i class="fas fa-gavel bounty-badge-icon"></i>';
+                badgeClass = 'bounty-badge-icon';
+            }
+            
+            return `
+                <a href="/user/messages/${conv.other_uid}" class="conversation-item ${conv.unread_count > 0 ? 'unread' : ''}">
+                    <div class="conversation-avatar">
+                        <div class="avatar-placeholder">${conv.other_nickname ? conv.other_nickname[0].toUpperCase() : '?'}</div>
+                        ${badgeIcon ? `<div class="conversation-badge">${badgeIcon}</div>` : ''}
+                    </div>
+                    <div class="conversation-info">
+                        <div class="conversation-header">
+                            <span class="conversation-name">${escapeHtml(conv.other_nickname)}</span>
+                            <span class="conversation-time">${conv.last_message_time || ''}</span>
+                        </div>
+                        <div class="conversation-preview">
+                            <span class="preview-text">${escapeHtml(conv.last_message || '暂无消息')}</span>
+                            ${conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count > 99 ? '99+' : conv.unread_count}</span>` : ''}
+                        </div>
+                    </div>
+                </a>
+            `;
+        }).join('');
+    } catch (error) {
+        container.innerHTML = '<div class="empty-conversations"><i class="fas fa-exclamation-circle"></i><p>加载失败</p></div>';
+    }
+}
+
+document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        currentFilter = this.dataset.filter;
+        loadConversations();
+    });
+});
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+loadConversations();
+</script>
+{% endblock %}

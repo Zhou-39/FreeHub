@@ -1,0 +1,524 @@
+{% extends "base-files/all.html" %}
+
+{% block title %}致谢名单 - FreeHub{% endblock %}
+
+{% block styles %}
+<style nonce="{{ request.nonce }}">
+    .thanks-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .thanks-header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 40px 20px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 20px;
+        color: white;
+    }
+    
+    .thanks-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+    }
+    
+    .thanks-header h1 i {
+        margin-right: 10px;
+        animation: pulse 2s infinite;
+    }
+    
+    .thanks-stats {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        padding: 8px 20px;
+        border-radius: 40px;
+        margin-top: 15px;
+    }
+    
+    .filter-bar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 30px;
+    }
+    
+    .sort-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--bg-secondary);
+        padding: 8px 16px;
+        border-radius: 40px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .sort-btn {
+        padding: 6px 16px;
+        border: none;
+        border-radius: 30px;
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .sort-btn:hover {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .sort-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .thanks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+    
+    .thanks-card {
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+    }
+    
+    .thanks-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px var(--shadow);
+    }
+    
+    .thanks-card-header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        padding: 25px 20px;
+        text-align: center;
+        color: white;
+        position: relative;
+    }
+    
+    .thanks-avatar {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 15px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        position: relative;
+    }
+    
+    .thanks-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .avatar-fallback {
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        position: absolute;
+        top: 0;
+        left: 0;
+        border-radius: 50%;
+    }
+    
+    .thanks-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    
+    .thanks-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.25);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+    }
+    
+    .thanks-card-body {
+        padding: 20px;
+    }
+    
+    .thanks-contact {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+        background: var(--bg-primary);
+        border-radius: 10px;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        font-family: monospace;
+    }
+    
+    .thanks-contact i {
+        color: var(--primary);
+        width: 20px;
+    }
+    
+    .thanks-achievement {
+        color: var(--text-primary);
+        line-height: 1.6;
+        padding: 10px 0;
+        border-top: 1px solid var(--border-color);
+        margin-top: 10px;
+    }
+    
+    .thanks-achievement i {
+        color: var(--warning);
+        margin-right: 8px;
+    }
+    
+    .thanks-date {
+        margin-top: 15px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-align: right;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+    
+    .loading-spinner {
+        text-align: center;
+        padding: 60px;
+        color: var(--text-secondary);
+        grid-column: 1 / -1;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px;
+        color: var(--text-secondary);
+        grid-column: 1 / -1;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        height: 40px;
+        padding: 0 12px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+    
+    .page-link:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    
+    .page-link.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    
+    .thanks-footer {
+        text-align: center;
+        margin-top: 40px;
+        padding: 20px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    @media (max-width: 768px) {
+        .thanks-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .thanks-header h1 {
+            font-size: 1.8rem;
+        }
+        
+        .filter-bar {
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="thanks-container">
+    <div class="thanks-header">
+        <h1><i class="fas fa-heart"></i> 致谢名单</h1>
+        <p>感谢每一位让 FreeHub 变得更好的人</p>
+        <div class="thanks-stats" id="thanksStats">
+            <i class="fas fa-users"></i> 加载中...
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <div class="sort-group">
+            <span>排序：</span>
+            <button class="sort-btn active" data-sort="default">默认</button>
+            <button class="sort-btn" data-sort="date">按时间</button>
+        </div>
+    </div>
+
+    <div class="thanks-grid" id="thanksGrid">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i> 加载中...
+        </div>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+
+    <div class="thanks-footer">
+        <i class="fas fa-shield-alt"></i> 联系方式已做脱敏处理，保护隐私安全
+    </div>
+</div>
+
+<script nonce="{{ request.nonce }}">
+let currentPage = 1;
+let currentSort = 'default';
+let totalPages = 1;
+
+// 三级 fallback 头像加载器: PNG -> JPG -> 默认图标
+function loadAvatar(imgElement, avatarId) {
+    if (!avatarId || avatarId === 0) {
+        showDefaultAvatar(imgElement);
+        return;
+    }
+    
+    imgElement.dataset.attemptIndex = '0';
+    imgElement.dataset.avatarId = avatarId;
+    tryFormat(imgElement);
+}
+
+function tryFormat(imgElement) {
+    var avatarId = imgElement.dataset.avatarId;
+    var attemptIndex = parseInt(imgElement.dataset.attemptIndex);
+    
+    var formats = [
+        { ext: 'png' },
+        { ext: 'jpg' }
+    ];
+    
+    if (attemptIndex >= formats.length) {
+        showDefaultAvatar(imgElement);
+        return;
+    }
+    
+    var format = formats[attemptIndex];
+    var imgUrl = "/static/img/system/thanks/" + avatarId + "." + format.ext;
+    
+    var testImg = new Image();
+    testImg.onload = function() {
+        imgElement.src = imgUrl;
+        imgElement.style.display = 'block';
+        if (imgElement.nextElementSibling) {
+            imgElement.nextElementSibling.style.display = 'none';
+        }
+        imgElement.dataset.loaded = 'true';
+    };
+    testImg.onerror = function() {
+        imgElement.dataset.attemptIndex = String(attemptIndex + 1);
+        tryFormat(imgElement);
+    };
+    testImg.src = imgUrl;
+}
+
+function showDefaultAvatar(imgElement) {
+    imgElement.style.display = 'none';
+    var fallbackDiv = imgElement.nextElementSibling;
+    if (fallbackDiv && fallbackDiv.classList.contains('avatar-fallback')) {
+        fallbackDiv.style.display = 'flex';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadThanks();
+    
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentSort = this.dataset.sort;
+            currentPage = 1;
+            loadThanks();
+        });
+    });
+});
+
+async function loadThanks() {
+    const grid = document.getElementById('thanksGrid');
+    grid.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+    
+    try {
+        let url = `/thanks/api/list?page=${currentPage}&per_page=12`;
+        if (currentSort === 'date') {
+            url += '&sort=date';
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('thanksStats').innerHTML = `<i class="fas fa-users"></i> 共 ${data.total} 位贡献者`;
+            totalPages = data.total_pages;
+            renderThanksCards(data.data);
+            renderPagination(data);
+            
+            // 初始化头像加载
+            document.querySelectorAll('.avatar-img').forEach(function(img) {
+                var avatarId = img.getAttribute('data-avatar-id');
+                var fallbackDiv = img.nextElementSibling;
+                img.style.display = 'block';
+                if (fallbackDiv) fallbackDiv.style.display = 'none';
+                loadAvatar(img, avatarId);
+            });
+        } else {
+            grid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>加载失败，请重试</p></div>';
+        }
+    } catch (error) {
+        console.error('加载失败:', error);
+        grid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>加载失败，请刷新重试</p></div>';
+    }
+}
+
+function renderThanksCards(thanksList) {
+    const grid = document.getElementById('thanksGrid');
+    
+    if (thanksList.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><i class="fas fa-heart"></i><p>暂无致谢记录</p><small>成为第一个被感谢的人吧</small></div>';
+        return;
+    }
+    
+    grid.innerHTML = '';
+    
+    for (const t of thanksList) {
+        const card = document.createElement('div');
+        card.className = 'thanks-card';
+        
+        card.innerHTML = `
+            <div class="thanks-card-header">
+                <div class="thanks-avatar">
+                    <img class="avatar-img" 
+                         data-avatar-id="${t.avatar_id || 0}"
+                         src="/static/img/system/thanks/${t.avatar_id || 0}.png"
+                         alt="头像"
+                         style="width: 100%; height: 100%; object-fit: cover;">
+                    <div class="avatar-fallback" style="display: none;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                <div class="thanks-name">${escapeHtml(t.name)}</div>
+                <div class="thanks-badge">贡献者</div>
+            </div>
+            <div class="thanks-card-body">
+                <div class="thanks-contact">
+                    <i class="fas fa-envelope"></i>
+                    <span>${escapeHtml(t.contact_masked)}</span>
+                </div>
+                <div class="thanks-achievement">
+                    <i class="fas fa-trophy"></i>
+                    ${escapeHtml(t.achievement)}
+                </div>
+                <div class="thanks-date">
+                    <i class="fas fa-calendar-alt"></i>
+                    ${t.achievement_date || t.created_at.split(' ')[0]}
+                </div>
+            </div>
+        `;
+        
+        grid.appendChild(card);
+    }
+}
+
+function renderPagination(data) {
+    const container = document.getElementById('pagination');
+    
+    if (data.total_pages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    
+    if (data.has_prev) {
+        html += `<a class="page-link" onclick="goToPage(${data.page - 1})">‹ 上一页</a>`;
+    }
+    
+    let startPage = Math.max(1, data.page - 2);
+    let endPage = Math.min(data.total_pages, data.page + 2);
+    
+    if (startPage > 1) {
+        html += `<a class="page-link" onclick="goToPage(1)">1</a>`;
+        if (startPage > 2) html += `<span class="page-link">...</span>`;
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === data.page) {
+            html += `<span class="page-link active">${i}</span>`;
+        } else {
+            html += `<a class="page-link" onclick="goToPage(${i})">${i}</a>`;
+        }
+    }
+    
+    if (endPage < data.total_pages) {
+        if (endPage < data.total_pages - 1) html += `<span class="page-link">...</span>`;
+        html += `<a class="page-link" onclick="goToPage(${data.total_pages})">${data.total_pages}</a>`;
+    }
+    
+    if (data.has_next) {
+        html += `<a class="page-link" onclick="goToPage(${data.page + 1})">下一页 ›</a>`;
+    }
+    
+    container.innerHTML = html;
+}
+
+function goToPage(page) {
+    if (page === currentPage) return;
+    currentPage = page;
+    loadThanks();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
