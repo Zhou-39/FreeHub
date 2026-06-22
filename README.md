@@ -8,32 +8,51 @@ FreeHub 是一个自托管的社区平台，集成了用户系统、内容管理
 
 ```
 FreeHub/
-├── app.py                    # 主应用入口
-├── bps/                      # 蓝图模块
-│   ├── users.py             # 用户功能（注册/登录/帖子/文章/私信/悬赏等）
-│   ├── admins.py            # 管理员功能
-│   ├── superadmins.py       # 超级管理员功能
-│   ├── owners.py            # 所有者功能
-│   └── api.py               # 公共 API
-├── utils/                    # 工具模块
-│   ├── database_creator.py  # 数据库模型定义
-│   ├── password_checker.py  # Argon2 密码哈希
-│   ├── pbkdf2_security.py   # PBKDF2 安全参数
-│   ├── email_sender.py      # SMTP 邮件发送
-│   ├── file_scanner.py      # 文件扫描（病毒/类型检测）
-│   ├── content_filter.py    # XSS 过滤与内容净化
-│   ├── captcha_maker.py     # 图形验证码生成
-│   └── utils.py             # 通用工具（CSRF/速率限制/URL检测等）
-├── share/                    # Share 服务（子域名代理/端口转发）
-│   ├── app.py
-│   └── restart.sh
-├── ide/                      # IDE 服务（在线编程环境）
-│   ├── app.py
-│   └── restart.sh
-├── static/                   # 静态资源
-├── templates/                # Jinja2 模板
-├── uploads/                  # 用户上传文件
-└── restart.sh                # 主服务重启脚本
+├── www/                          # 主站（/var/website/www/）
+│   ├── .venv/                    # Python 虚拟环境
+│   ├── app.py                    # Flask 主应用入口
+│   ├── bps/                      # 蓝图模块
+│   │   ├── users.py              # 用户功能（注册/登录/帖子/文章/私信/悬赏等）
+│   │   ├── admins.py             # 管理员功能
+│   │   ├── superadmins.py        # 超级管理员功能
+│   │   ├── owners.py             # 所有者功能
+│   │   └── api.py                # 公共 API
+│   ├── utils/                    # 工具模块
+│   │   ├── database_creator.py   # 数据库模型定义
+│   │   ├── password_checker.py   # Argon2 密码哈希
+│   │   ├── pbkdf2_security.py    # PBKDF2 安全参数
+│   │   ├── email_sender.py       # SMTP 邮件发送
+│   │   ├── file_scanner.py       # 文件扫描（病毒/类型检测）
+│   │   ├── content_filter.py     # XSS 过滤与内容净化
+│   │   ├── captcha_maker.py      # 图形验证码生成
+│   │   └── utils.py              # 通用工具（CSRF/速率限制/URL检测等）
+│   ├── DBs/                      # 数据库文件
+│   │   ├── Users/
+│   │   │   └── users.db          # 用户数据库
+│   │   └── Admins/
+│   │       └── admins.db         # 管理员数据库
+│   ├── static/                   # 静态资源
+│   ├── templates/                # Jinja2 模板
+│   │   ├── base-files/           # 各角色通用页面
+│   │   └── system-files/         # 系统页面（首页/关于/错误页等）
+│   ├── uploads/                  # 用户上传文件
+│   └── restart.sh                # 主服务重启脚本
+│
+├── ide/                          # IDE 服务（/var/website/ide/）
+│   ├── .venv/                    # Python 虚拟环境
+│   ├── app.py                    # Flask-SocketIO 应用
+│   ├── workspaces/               # 用户工作区
+│   ├── templates/                # IDE 模板
+│   └── restart.sh                # IDE 重启脚本
+│
+├── share/                        # Share 服务（/var/website/share/）
+│   ├── .venv/                    # Python 虚拟环境
+│   ├── app.py                    # 子域名代理服务
+│   ├── share.db                  # Share 数据库
+│   └── restart.sh                # Share 重启脚本
+│
+├── README.md                     # 说明文件
+└── LICENSE                       # 许可
 ```
 
 ---
